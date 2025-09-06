@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { List, Grid3X3, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,14 @@ export function TrackTable({
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [pageSize, setPageSize] = useState(50);
+
+  // Load saved page size from localStorage on mount
+  useEffect(() => {
+    const savedPageSize = localStorage.getItem('trackTable-pageSize');
+    if (savedPageSize) {
+      setPageSize(Number(savedPageSize));
+    }
+  }, []);
   
   const defaultColumns: ColumnConfig[] = [
     {
@@ -139,7 +147,33 @@ export function TrackTable({
     }
   ];
 
-  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [columns, setColumns] = useState<ColumnConfig[]>([]);
+
+  // Load saved column order from localStorage on mount
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('trackTable-columnOrder');
+    if (savedOrder) {
+      try {
+        const savedColumnIds = JSON.parse(savedOrder);
+        // Reorder defaultColumns based on saved order
+        const reorderedColumns = savedColumnIds.map((id: string) => 
+          defaultColumns.find(col => col.id === id)
+        ).filter(Boolean);
+        
+        // Add any new columns that weren't in the saved order
+        const missingColumns = defaultColumns.filter(col => 
+          !savedColumnIds.includes(col.id)
+        );
+        
+        setColumns([...reorderedColumns, ...missingColumns]);
+      } catch (error) {
+        console.error('Failed to load saved column order:', error);
+        setColumns(defaultColumns);
+      }
+    } else {
+      setColumns(defaultColumns);
+    }
+  }, []);
   const [draggedColumn, setDraggedColumn] = useState<number | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
 
@@ -173,6 +207,11 @@ export function TrackTable({
       const draggedCol = newColumns[draggedColumn];
       newColumns.splice(draggedColumn, 1);
       newColumns.splice(dropIndex, 0, draggedCol);
+      
+      // Save new column order to localStorage
+      const columnOrder = newColumns.map(col => col.id);
+      localStorage.setItem('trackTable-columnOrder', JSON.stringify(columnOrder));
+      
       return newColumns;
     });
     
@@ -434,7 +473,9 @@ export function TrackTable({
             <div className="flex items-center space-x-2">
               <span className="text-xs">Show:</span>
               <Select value={pageSize.toString()} onValueChange={(value) => {
-                setPageSize(Number(value));
+                const newPageSize = Number(value);
+                setPageSize(newPageSize);
+                localStorage.setItem('trackTable-pageSize', newPageSize.toString());
                 onPageChange(1); // Reset to first page when changing page size
               }}>
                 <SelectTrigger className="w-16 h-7 text-xs" data-testid="select-page-size">
