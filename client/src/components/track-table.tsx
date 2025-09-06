@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { List, Grid3X3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,11 @@ export function TrackTable({
   onPageChange,
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [columnSizes, setColumnSizes] = useState([4, 19, 24, 19, 8, 11, 8, 7]);
+
+  const handleColumnResize = useCallback((sizes: number[]) => {
+    setColumnSizes(sizes);
+  }, []);
 
   const { data: tracksData, isLoading } = useQuery({
     queryKey: [
@@ -151,50 +156,50 @@ export function TrackTable({
           <div className="h-full flex flex-col">
             {/* Header Row - Controls column widths */}
             <div className="bg-secondary border-b border-border">
-              <PanelGroup direction="horizontal" id="table-columns">
-                <Panel defaultSize={4} minSize={3} maxSize={6} id="col-position">
+              <PanelGroup direction="horizontal" onLayout={handleColumnResize}>
+                <Panel defaultSize={columnSizes[0]} minSize={3} maxSize={6}>
                   <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     #
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={19} minSize={10} id="col-artist">
+                <Panel defaultSize={columnSizes[1]} minSize={10}>
                   <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Artist
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={24} minSize={15} id="col-title">
+                <Panel defaultSize={columnSizes[2]} minSize={15}>
                   <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Track Title
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={19} minSize={10} id="col-release">
+                <Panel defaultSize={columnSizes[3]} minSize={10}>
                   <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Release
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={8} minSize={6} maxSize={12} id="col-year">
+                <Panel defaultSize={columnSizes[4]} minSize={6} maxSize={12}>
                   <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                     Year
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={11} minSize={8} maxSize={16} id="col-genre">
+                <Panel defaultSize={columnSizes[5]} minSize={8} maxSize={16}>
                   <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                     Genre
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={8} minSize={6} maxSize={12} id="col-format">
+                <Panel defaultSize={columnSizes[6]} minSize={6} maxSize={12}>
                   <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     Format
                   </div>
                 </Panel>
                 <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={7} minSize={6} maxSize={12} id="col-duration">
+                <Panel defaultSize={columnSizes[7]} minSize={6} maxSize={12}>
                   <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     Duration
                   </div>
@@ -202,66 +207,41 @@ export function TrackTable({
               </PanelGroup>
             </div>
             
-            {/* Scrollable Content - Each row follows the same column structure */}
+            {/* Scrollable Content - Uses CSS widths based on column sizes */}
             <div className="flex-1 overflow-auto">
               {tracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`border-b border-border cursor-pointer ${
+                  className={`border-b border-border cursor-pointer flex ${
                     selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
                   }`}
                   onClick={() => onSelectTrack(track.id)}
                   data-testid={`row-track-${track.id}`}
                 >
-                  <PanelGroup direction="horizontal" id={`row-${track.id}`}>
-                    <Panel defaultSize={4} minSize={3} maxSize={6}>
-                      <div className="px-3 py-3 text-sm text-muted-foreground" data-testid={`text-position-${track.id}`}>
-                        {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={19} minSize={10}>
-                      <div className="px-6 py-3 text-sm font-medium truncate" data-testid={`text-artist-${track.id}`} title={track.artist}>
-                        {track.artist}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={24} minSize={15}>
-                      <div className="px-6 py-3 text-sm truncate" data-testid={`text-title-${track.id}`} title={track.title}>
-                        {track.title}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={19} minSize={10}>
-                      <div className="px-6 py-3 text-sm text-muted-foreground truncate" data-testid={`text-release-${track.id}`} title={track.release.title}>
-                        {track.release.title}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={8} minSize={6} maxSize={12}>
-                      <div className="px-4 py-3 text-sm text-muted-foreground" data-testid={`text-year-${track.id}`}>
-                        {track.release.year || '—'}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={11} minSize={8} maxSize={16}>
-                      <div className="px-4 py-3 text-sm text-muted-foreground truncate" data-testid={`text-genre-${track.id}`} title={track.release.genre || '—'}>
-                        {track.release.genre || '—'}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={8} minSize={6} maxSize={12}>
-                      <div className="px-3 py-3 text-sm text-muted-foreground truncate" data-testid={`text-format-${track.id}`} title={track.release.format || '—'}>
-                        {track.release.format || '—'}
-                      </div>
-                    </Panel>
-                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
-                    <Panel defaultSize={7} minSize={6} maxSize={12}>
-                      <div className="px-3 py-3 text-sm text-muted-foreground" data-testid={`text-duration-${track.id}`}>
-                        {track.duration || '—'}
-                      </div>
-                    </Panel>
-                  </PanelGroup>
+                  <div className="px-3 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[0]}%` }} data-testid={`text-position-${track.id}`}>
+                    {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
+                  </div>
+                  <div className="px-6 py-3 text-sm font-medium truncate" style={{ width: `${columnSizes[1]}%` }} data-testid={`text-artist-${track.id}`} title={track.artist}>
+                    {track.artist}
+                  </div>
+                  <div className="px-6 py-3 text-sm truncate" style={{ width: `${columnSizes[2]}%` }} data-testid={`text-title-${track.id}`} title={track.title}>
+                    {track.title}
+                  </div>
+                  <div className="px-6 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[3]}%` }} data-testid={`text-release-${track.id}`} title={track.release.title}>
+                    {track.release.title}
+                  </div>
+                  <div className="px-4 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[4]}%` }} data-testid={`text-year-${track.id}`}>
+                    {track.release.year || '—'}
+                  </div>
+                  <div className="px-4 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[5]}%` }} data-testid={`text-genre-${track.id}`} title={track.release.genre || '—'}>
+                    {track.release.genre || '—'}
+                  </div>
+                  <div className="px-3 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[6]}%` }} data-testid={`text-format-${track.id}`} title={track.release.format || '—'}>
+                    {track.release.format || '—'}
+                  </div>
+                  <div className="px-3 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[7]}%` }} data-testid={`text-duration-${track.id}`}>
+                    {track.duration || '—'}
+                  </div>
                 </div>
               ))}
             </div>
