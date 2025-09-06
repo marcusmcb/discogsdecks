@@ -133,8 +133,8 @@ export class DatabaseStorage implements IStorage {
       orderByClause = asc(tracks.artist);
     }
 
-    // Build main query with all clauses
-    let queryBuilder = db
+    // Build main query with all clauses and pagination
+    const queryBuilder = db
       .select({
         id: tracks.id,
         releaseId: tracks.releaseId,
@@ -152,15 +152,9 @@ export class DatabaseStorage implements IStorage {
       .from(tracks)
       .innerJoin(releases, eq(tracks.releaseId, releases.id))
       .where(and(...whereConditions))
-      .orderBy(orderByClause);
-
-    // Apply pagination
-    if (filters?.limit) {
-      queryBuilder = queryBuilder.limit(filters.limit);
-    }
-    if (filters?.offset) {
-      queryBuilder = queryBuilder.offset(filters.offset);
-    }
+      .orderBy(orderByClause)
+      .limit(filters?.limit || 50)
+      .offset(filters?.offset || 0);
 
     const results = await queryBuilder;
     

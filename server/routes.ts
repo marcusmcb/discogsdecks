@@ -8,8 +8,7 @@ import { z } from "zod";
 // Extend Express Session types
 declare module "express-session" {
   interface SessionData {
-    requestToken?: string;
-    requestSecret?: string;
+    oauthState?: string;
   }
 }
 
@@ -27,27 +26,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const callbackUrl = `${req.protocol}://${req.get('host')}/api/auth/discogs/callback`;
       console.log('Initiating OAuth with callback URL:', callbackUrl);
       
-      const { url, requestToken, requestSecret } = await discogsService.generateOAuthUrl(callbackUrl);
+      const { url, state } = await discogsService.generateOAuthUrl(callbackUrl);
       console.log('Generated OAuth URL:', url);
-      console.log('Request token:', requestToken);
+      console.log('OAuth state:', state);
       
-      // Store tokens in session or temporary storage
+      // Store state in session for security verification
       req.session = req.session || {};
-      req.session.requestToken = requestToken;
-      req.session.requestSecret = requestSecret;
+      req.session.oauthState = state;
       
       res.json({ authUrl: url });
     } catch (error) {
       console.error('OAuth initiation error:', error);
-      res.status(500).json({ message: "Failed to initiate OAuth", error: error.message });
+      res.status(500).json({ message: "Failed to initiate OAuth", error: (error as Error).message });
     }
   });
 
   app.get("/api/auth/discogs/callback", async (req, res) => {
     try {
-      const { oauth_token, oauth_verifier } = req.query;
+      const { code, state } = req.query;
       
-      if (!oauth_token || !oauth_verifier) {
+      if (!code || !state) {
         return res.send(`
           <html>
             <body>
@@ -61,15 +59,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
       }
 
-      // Get stored request tokens from session
-      const requestToken = req.session?.requestToken;
-      const requestSecret = req.session?.requestSecret;
+      // Verify state parameter for security
+      const sessionState = req.session?.oauthState;
       
-      if (!requestToken || !requestSecret) {
-        throw new Error('Request token not found in session');
+      if (!sessionState || sessionState !== state) {
+        throw new Error('Invalid state parameter - possible CSRF attack');
       }
 
-      const tokens = await discogsService.exchangeCodeForTokens(oauth_verifier as string, requestToken, requestSecret);
+      // Exchange authorization code for access token
+      const tokens = await discogsService.exchangeCodeForTokens(
+        code as string,
+        `${req.protocol}://${req.get('host')}/api/auth/discogs/callback`
+      );
       
       // In a real app, you'd associate this with the logged-in user
       // For demo purposes, we'll use a hardcoded user ID

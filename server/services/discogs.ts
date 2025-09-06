@@ -42,90 +42,69 @@ export class DiscogsService {
     this.consumerSecret = process.env.DISCOGS_CONSUMER_SECRET || 'lxdpoRAHQojEViwTMPbiqkRphNWOMxDN';
   }
 
-  async generateOAuthUrl(callbackUrl: string): Promise<{ url: string; requestToken: string; requestSecret: string }> {
+  async generateOAuthUrl(callbackUrl: string): Promise<{ url: string; state: string }> {
     try {
-      // Step 1: Get request token from Discogs using GET method with proper OAuth format
-      const timestamp = Math.floor(Date.now() / 1000);
-      const nonce = Math.random().toString(36).substring(2, 15);
+      // Generate a random state parameter for security
+      const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
-      const oauthParams = [
-        `oauth_consumer_key=${encodeURIComponent(this.consumerKey)}`,
-        `oauth_nonce=${nonce}`,
-        `oauth_signature_method=PLAINTEXT`,
-        `oauth_timestamp=${timestamp}`,
-        `oauth_callback=${encodeURIComponent(callbackUrl)}`,
-        `oauth_signature=${encodeURIComponent(this.consumerSecret)}&`
-      ];
-      
-      const authHeader = `OAuth ${oauthParams.join(', ')}`;
-      
-      const response = await fetch('https://api.discogs.com/oauth/request_token', {
-        method: 'GET',
-        headers: {
-          'Authorization': authHeader,
-          'User-Agent': 'DJLibrary/1.0'
-        }
+      // Discogs uses OAuth 2.0 authorization code flow
+      const authParams = new URLSearchParams({
+        client_id: this.consumerKey,
+        redirect_uri: callbackUrl,
+        response_type: 'code',
+        state: state,
+        scope: 'r_user_library' // Request read access to user's library
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Discogs API response:', response.status, errorText);
-        throw new Error(`Failed to get request token: ${response.status} - ${errorText}`);
-      }
-
-      const responseText = await response.text();
-      console.log('Discogs request token response:', responseText);
-      const params = new URLSearchParams(responseText);
       
-      const requestToken = params.get('oauth_token');
-      const requestSecret = params.get('oauth_token_secret');
+      const url = `https://www.discogs.com/oauth/authorize?${authParams.toString()}`;
       
-      if (!requestToken || !requestSecret) {
-        throw new Error('Invalid response from Discogs request token endpoint');
-      }
-
-      // Step 2: Generate authorization URL
-      const url = `https://www.discogs.com/oauth/authorize?oauth_token=${requestToken}`;
-      
-      return { url, requestToken, requestSecret };
+      console.log('Generated OAuth URL:', url);
+      return { url, state };
     } catch (error) {
       console.error('Error generating OAuth URL:', error);
       throw error;
     }
   }
 
-  async exchangeCodeForTokens(verifier: string, requestToken: string, requestSecret: string): Promise<DiscogsOAuthTokens> {
+  async exchangeCodeForTokens(code: string, redirectUri: string): Promise<DiscogsOAuthTokens> {
     try {
-      // Step 3: Exchange verifier for access token
+      // Exchange authorization code for access token using OAuth 2.0
+      const tokenParams = new URLSearchParams({
+        grant_type: 'authorization_code',
+        code: code,
+        redirect_uri: redirectUri,
+        client_id: this.consumerKey,
+        client_secret: this.consumerSecret
+      });
+
       const response = await fetch('https://api.discogs.com/oauth/access_token', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `OAuth oauth_consumer_key="${this.consumerKey}", oauth_token="${requestToken}", oauth_verifier="${verifier}", oauth_signature_method="PLAINTEXT", oauth_signature="${this.consumerSecret}&${requestSecret}"`,
           'User-Agent': 'DJLibrary/1.0'
-        }
+        },
+        body: tokenParams.toString()
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to exchange tokens: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Token exchange error:', response.status, errorText);
+        throw new Error(`Failed to get access token: ${response.status} - ${errorText}`);
       }
 
-      const responseText = await response.text();
-      const params = new URLSearchParams(responseText);
+      const data = await response.json();
+      console.log('Token exchange response:', data);
       
-      const accessToken = params.get('oauth_token');
-      const accessSecret = params.get('oauth_token_secret');
-      
-      if (!accessToken || !accessSecret) {
+      if (!data.access_token) {
         throw new Error('Invalid response from Discogs access token endpoint');
       }
 
       return {
-        token: accessToken,
-        secret: accessSecret
+        token: data.access_token,
+        secret: '' // OAuth 2.0 doesn't use token secrets
       };
     } catch (error) {
-      console.error('Error exchanging tokens:', error);
+      console.error('Error exchanging code for tokens:', error);
       throw error;
     }
   }
