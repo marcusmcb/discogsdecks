@@ -20,7 +20,12 @@ export default function Home() {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
-  const { data: stats } = useQuery({
+  const { data: stats } = useQuery<{
+    totalTracks: number;
+    totalReleases: number;
+    lastUpdated: string | null;
+    connected: boolean;
+  }>({
     queryKey: ["/api/stats"],
   });
 
