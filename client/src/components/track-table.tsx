@@ -148,211 +148,123 @@ export function TrackTable({
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-hidden">
-            <PanelGroup direction="horizontal" className="h-full">
-              {/* Position Column */}
-              <Panel defaultSize={4} minSize={3} maxSize={6}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+          <div className="h-full flex flex-col">
+            {/* Header Row - Controls column widths */}
+            <div className="bg-secondary border-b border-border">
+              <PanelGroup direction="horizontal" id="table-columns">
+                <Panel defaultSize={4} minSize={3} maxSize={6} id="col-position">
+                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     #
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track, index) => (
-                      <div
-                        key={`pos-${track.id}`}
-                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-position-${track.id}`}
-                      >
-                        {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Artist Column */}
-              <Panel defaultSize={19} minSize={10}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={19} minSize={10} id="col-artist">
+                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Artist
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`artist-${track.id}`}
-                        className={`px-6 py-3 text-sm font-medium border-b border-border cursor-pointer truncate ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-artist-${track.id}`}
-                        title={track.artist}
-                      >
-                        {track.artist}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Track Title Column */}
-              <Panel defaultSize={24} minSize={15}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={24} minSize={15} id="col-title">
+                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Track Title
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`title-${track.id}`}
-                        className={`px-6 py-3 text-sm border-b border-border cursor-pointer truncate ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-title-${track.id}`}
-                        title={track.title}
-                      >
-                        {track.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Release Column */}
-              <Panel defaultSize={19} minSize={10}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={19} minSize={10} id="col-release">
+                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
                     Release
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`release-${track.id}`}
-                        className={`px-6 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-release-${track.id}`}
-                        title={track.release.title}
-                      >
-                        {track.release.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Year Column */}
-              <Panel defaultSize={8} minSize={6} maxSize={12}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={8} minSize={6} maxSize={12} id="col-year">
+                  <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                     Year
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`year-${track.id}`}
-                        className={`px-4 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-year-${track.id}`}
-                      >
-                        {track.release.year || '—'}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Genre Column */}
-              <Panel defaultSize={11} minSize={8} maxSize={16}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={11} minSize={8} maxSize={16} id="col-genre">
+                  <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
                     Genre
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`genre-${track.id}`}
-                        className={`px-4 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-genre-${track.id}`}
-                        title={track.release.genre || '—'}
-                      >
-                        {track.release.genre || '—'}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Format Column */}
-              <Panel defaultSize={8} minSize={6} maxSize={12}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={8} minSize={6} maxSize={12} id="col-format">
+                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     Format
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`format-${track.id}`}
-                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-format-${track.id}`}
-                        title={track.release.format || '—'}
-                      >
-                        {track.release.format || '—'}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </Panel>
-              
-              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-              
-              {/* Duration Column */}
-              <Panel defaultSize={7} minSize={6} maxSize={12}>
-                <div className="h-full flex flex-col">
-                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                </Panel>
+                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                <Panel defaultSize={7} minSize={6} maxSize={12} id="col-duration">
+                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
                     Duration
                   </div>
-                  <div className="flex-1 overflow-auto">
-                    {tracks.map((track) => (
-                      <div
-                        key={`duration-${track.id}`}
-                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
-                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
-                        }`}
-                        onClick={() => onSelectTrack(track.id)}
-                        data-testid={`text-duration-${track.id}`}
-                      >
+                </Panel>
+              </PanelGroup>
+            </div>
+            
+            {/* Scrollable Content - Each row follows the same column structure */}
+            <div className="flex-1 overflow-auto">
+              {tracks.map((track, index) => (
+                <div
+                  key={track.id}
+                  className={`border-b border-border cursor-pointer ${
+                    selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                  }`}
+                  onClick={() => onSelectTrack(track.id)}
+                  data-testid={`row-track-${track.id}`}
+                >
+                  <PanelGroup direction="horizontal" id={`row-${track.id}`}>
+                    <Panel defaultSize={4} minSize={3} maxSize={6}>
+                      <div className="px-3 py-3 text-sm text-muted-foreground" data-testid={`text-position-${track.id}`}>
+                        {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={19} minSize={10}>
+                      <div className="px-6 py-3 text-sm font-medium truncate" data-testid={`text-artist-${track.id}`} title={track.artist}>
+                        {track.artist}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={24} minSize={15}>
+                      <div className="px-6 py-3 text-sm truncate" data-testid={`text-title-${track.id}`} title={track.title}>
+                        {track.title}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={19} minSize={10}>
+                      <div className="px-6 py-3 text-sm text-muted-foreground truncate" data-testid={`text-release-${track.id}`} title={track.release.title}>
+                        {track.release.title}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={8} minSize={6} maxSize={12}>
+                      <div className="px-4 py-3 text-sm text-muted-foreground" data-testid={`text-year-${track.id}`}>
+                        {track.release.year || '—'}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={11} minSize={8} maxSize={16}>
+                      <div className="px-4 py-3 text-sm text-muted-foreground truncate" data-testid={`text-genre-${track.id}`} title={track.release.genre || '—'}>
+                        {track.release.genre || '—'}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={8} minSize={6} maxSize={12}>
+                      <div className="px-3 py-3 text-sm text-muted-foreground truncate" data-testid={`text-format-${track.id}`} title={track.release.format || '—'}>
+                        {track.release.format || '—'}
+                      </div>
+                    </Panel>
+                    <PanelResizeHandle className="w-1 bg-transparent pointer-events-none" />
+                    <Panel defaultSize={7} minSize={6} maxSize={12}>
+                      <div className="px-3 py-3 text-sm text-muted-foreground" data-testid={`text-duration-${track.id}`}>
                         {track.duration || '—'}
                       </div>
-                    ))}
-                  </div>
+                    </Panel>
+                  </PanelGroup>
                 </div>
-              </Panel>
-            </PanelGroup>
+              ))}
+            </div>
           </div>
         )}
       </div>
