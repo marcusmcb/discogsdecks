@@ -196,7 +196,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get tracks with filtering and pagination
   app.get("/api/tracks", async (req, res) => {
     try {
-      const userId = "demo-user-id"; // In real app, get from auth
+      // Find the authenticated user (with Discogs tokens)
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        // No authenticated user, return empty result
+        res.json({
+          tracks: [],
+          total: 0,
+          page: 1,
+          totalPages: 0,
+        });
+        return;
+      }
+      
+      const userId = user.id;
       
       const searchSchema = z.object({
         search: z.string().optional(),
@@ -233,12 +248,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get library stats
   app.get("/api/stats", async (req, res) => {
     try {
-      const userId = "demo-user-id";
+      // Find the authenticated user (with Discogs tokens)
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
       
-      const releases = await storage.getUserReleases(userId);
-      const { total: totalTracks } = await storage.getUserTracks(userId, { limit: 0 });
+      if (!user) {
+        // No authenticated user found
+        res.json({
+          totalTracks: 0,
+          totalReleases: 0,
+          lastUpdated: null,
+          connected: false,
+        });
+        return;
+      }
       
-      const user = await storage.getUser(userId);
+      const releases = await storage.getUserReleases(user.id);
+      const { total: totalTracks } = await storage.getUserTracks(user.id, { limit: 0 });
       
       res.json({
         totalTracks,

@@ -33,8 +33,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
           if (popup?.closed) {
             clearInterval(checkClosed);
             setIsConnecting(false);
-            // Refresh the page to check connection status
-            window.location.reload();
+            // Check connection status instead of immediately reloading
+            setTimeout(() => {
+              window.location.reload();
+            }, 500);
           }
         }, 1000);
         
