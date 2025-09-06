@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { List, Grid3X3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "react-resizable-panels";
+import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
 
 interface Track {
   id: string;
@@ -149,9 +149,9 @@ export function TrackTable({
           </div>
         ) : (
           <div className="h-full overflow-hidden">
-            <ResizablePanelGroup direction="horizontal" className="h-full">
+            <PanelGroup direction="horizontal" className="h-full">
               {/* Position Column */}
-              <ResizablePanel defaultSize={4} minSize={3} maxSize={6}>
+              <Panel defaultSize={4} minSize={3} maxSize={6}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     #
@@ -171,12 +171,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Artist Column */}
-              <ResizablePanel defaultSize={20} minSize={10}>
+              <Panel defaultSize={19} minSize={10}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Artist
@@ -197,12 +197,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Track Title Column */}
-              <ResizablePanel defaultSize={25} minSize={15}>
+              <Panel defaultSize={24} minSize={15}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Track Title
@@ -223,12 +223,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Release Column */}
-              <ResizablePanel defaultSize={20} minSize={10}>
+              <Panel defaultSize={19} minSize={10}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Release
@@ -249,12 +249,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Year Column */}
-              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+              <Panel defaultSize={8} minSize={6} maxSize={12}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Year
@@ -274,12 +274,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Genre Column */}
-              <ResizablePanel defaultSize={12} minSize={8} maxSize={16}>
+              <Panel defaultSize={11} minSize={8} maxSize={16}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Genre
@@ -300,12 +300,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Format Column */}
-              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+              <Panel defaultSize={8} minSize={6} maxSize={12}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Format
@@ -326,12 +326,12 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
+              </Panel>
               
-              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
               
               {/* Duration Column */}
-              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+              <Panel defaultSize={7} minSize={6} maxSize={12}>
                 <div className="h-full">
                   <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
                     Duration
@@ -351,8 +351,8 @@ export function TrackTable({
                     ))}
                   </div>
                 </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+              </Panel>
+            </PanelGroup>
           </div>
         )}
       </div>
