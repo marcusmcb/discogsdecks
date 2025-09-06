@@ -134,6 +134,36 @@ export class DiscogsService {
     }
   }
 
+  async getUserIdentity(token: string, secret: string): Promise<{ username: string; id: number }> {
+    try {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const nonce = Math.random().toString(36).substring(2, 15);
+      
+      // Build Authorization header for authenticated requests
+      const authHeader = `OAuth oauth_consumer_key="${this.consumerKey}", oauth_nonce="${nonce}", oauth_token="${token}", oauth_signature="${this.consumerSecret}&${secret}", oauth_signature_method="PLAINTEXT", oauth_timestamp="${timestamp}"`;
+      
+      const response = await fetch('https://api.discogs.com/oauth/identity', {
+        headers: {
+          'Authorization': authHeader,
+          'User-Agent': 'DJLibrary/1.0'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get user identity: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return {
+        username: data.username,
+        id: data.id
+      };
+    } catch (error) {
+      console.error('Error getting user identity:', error);
+      throw error;
+    }
+  }
+
   async getUserCollection(token: string, username: string, page: number = 1): Promise<{
     releases: DiscogsRelease[];
     hasMore: boolean;

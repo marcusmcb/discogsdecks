@@ -76,21 +76,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         requestSecret
       );
       
-      // In a real app, you'd associate this with the logged-in user
-      // For demo purposes, we'll use a hardcoded user ID
-      const userId = "demo-user-id";
+      // Get actual user identity from Discogs
+      const identity = await discogsService.getUserIdentity(tokens.token, tokens.secret);
       
-      // Ensure demo user exists
-      let user = await storage.getUser(userId);
+      // Try to find existing user by Discogs username
+      let user = await storage.getUserByUsername(identity.username);
+      
       if (!user) {
+        // Create new user with actual Discogs username
         user = await storage.createUser({
-          username: "demo-user",
-          password: "temp-password" // Not used for OAuth flow
+          username: identity.username,
+          password: "oauth-user" // Not used for OAuth flow
         });
       }
       
       // Store tokens (in production, encrypt these)
-      await storage.updateUserTokens(user.id, tokens.token, tokens.secret, "demo-username");
+      await storage.updateUserTokens(user.id, tokens.token, tokens.secret, identity.username);
       
       // Send success message to parent window and close popup
       res.send(`
@@ -166,19 +167,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import collection
   app.post("/api/import", async (req, res) => {
     try {
-      // In a real app, get user ID from session/auth
-      const userId = "demo-user-id";
+      // For demo purposes, find the most recently authenticated user
+      // In production, you'd use proper session management
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
       
-      const user = await storage.getUser(userId);
       if (!user || !user.discogsToken || !user.discogsUsername) {
-        return res.status(401).json({ message: "User not connected to Discogs" });
+        return res.status(401).json({ message: "No authenticated Discogs user found. Please connect your account first." });
       }
 
       // Start import process (in production, use a job queue)
       const result = await discogsService.importUserCollection(
         user.discogsToken,
         user.discogsUsername,
-        userId,
+        user.id,
         storage
       );
 
