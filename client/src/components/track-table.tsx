@@ -213,9 +213,9 @@ export function TrackTable({
   const totalPages = tracksData?.totalPages || 1;
 
   return (
-    <div className="flex-1 flex flex-col" data-testid="track-table-container">
+    <div className="h-full flex flex-col" data-testid="track-table-container">
       {/* Toolbar */}
-      <div className="bg-card border-b border-border px-6 py-4">
+      <div className="bg-card border-b border-border px-6 py-4 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <h2 className="text-lg font-semibold" data-testid="text-library-title">Track Library</h2>
@@ -264,7 +264,7 @@ export function TrackTable({
       </div>
       
       {/* Track Table */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -282,7 +282,7 @@ export function TrackTable({
         ) : (
           <div className="h-full flex flex-col">
             {/* Header Row - Controls column widths */}
-            <div className="bg-secondary border-b border-border">
+            <div className="bg-secondary border-b border-border flex-shrink-0">
               <PanelGroup direction="horizontal" onLayout={handleColumnResize}>
                 {columns.flatMap((column, index) => {
                   const elements = [
@@ -359,7 +359,7 @@ export function TrackTable({
       </div>
       
       {/* Status Bar */}
-      <div className="bg-card border-t border-border px-6 py-3">
+      <div className="bg-card border-t border-border px-6 py-3 flex-shrink-0">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">
             <span data-testid="text-pagination-info">
