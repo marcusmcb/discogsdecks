@@ -57,6 +57,7 @@ export function TrackTable({
   onPageChange,
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [pageSize, setPageSize] = useState(50);
   
   const defaultColumns: ColumnConfig[] = [
     {
@@ -65,7 +66,7 @@ export function TrackTable({
       size: 4,
       minSize: 3,
       maxSize: 6,
-      getValue: (_, index, currentPage) => String(index + 1 + (currentPage - 1) * 50).padStart(3, '0'),
+      getValue: (_, index, currentPage) => String(index + 1 + (currentPage - 1) * pageSize).padStart(3, '0'),
       className: 'text-muted-foreground',
       padding: 'px-3 py-3'
     },
@@ -190,9 +191,10 @@ export function TrackTable({
       filters.sortBy,
       filters.sortOrder,
       currentPage,
+      pageSize,
     ],
     queryFn: ({ queryKey }) => {
-      const [, search, yearFrom, yearTo, genre, format, sortBy, sortOrder, page] = queryKey;
+      const [, search, yearFrom, yearTo, genre, format, sortBy, sortOrder, page, limit] = queryKey;
       const params = new URLSearchParams({
         ...(search && { search: search as string }),
         ...(yearFrom && { yearFrom: yearFrom as string }),
@@ -202,7 +204,7 @@ export function TrackTable({
         sortBy: sortBy as string,
         sortOrder: sortOrder as string,
         page: page?.toString() || '1',
-        limit: '50',
+        limit: (limit as number)?.toString() || '50',
       });
       return fetch(`/api/tracks?${params}`).then(res => res.json());
     },
@@ -363,8 +365,27 @@ export function TrackTable({
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center space-x-4">
             <span data-testid="text-pagination-info">
-              Showing {Math.min((currentPage - 1) * 50 + 1, total)}-{Math.min(currentPage * 50, total)} of {total.toLocaleString()} tracks
+              Showing {Math.min((currentPage - 1) * pageSize + 1, total)}-{Math.min(currentPage * pageSize, total)} of {total.toLocaleString()} tracks
             </span>
+            
+            {/* Page Size Selector */}
+            <div className="flex items-center space-x-2">
+              <span className="text-xs">Show:</span>
+              <Select value={pageSize.toString()} onValueChange={(value) => {
+                setPageSize(Number(value));
+                onPageChange(1); // Reset to first page when changing page size
+              }}>
+                <SelectTrigger className="w-16 h-7 text-xs" data-testid="select-page-size">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="25">25</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                  <SelectItem value="200">200</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           {/* Pagination */}
