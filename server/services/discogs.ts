@@ -44,21 +44,37 @@ export class DiscogsService {
 
   async generateOAuthUrl(callbackUrl: string): Promise<{ url: string; requestToken: string; requestSecret: string }> {
     try {
-      // Step 1: Get request token from Discogs
+      // Step 1: Get request token from Discogs using GET method with proper OAuth format
+      const timestamp = Math.floor(Date.now() / 1000);
+      const nonce = Math.random().toString(36).substring(2, 15);
+      
+      const oauthParams = [
+        `oauth_consumer_key=${encodeURIComponent(this.consumerKey)}`,
+        `oauth_nonce=${nonce}`,
+        `oauth_signature_method=PLAINTEXT`,
+        `oauth_timestamp=${timestamp}`,
+        `oauth_callback=${encodeURIComponent(callbackUrl)}`,
+        `oauth_signature=${encodeURIComponent(this.consumerSecret)}&`
+      ];
+      
+      const authHeader = `OAuth ${oauthParams.join(', ')}`;
+      
       const response = await fetch('https://api.discogs.com/oauth/request_token', {
         method: 'GET',
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Authorization': `OAuth oauth_consumer_key="${this.consumerKey}", oauth_callback="${encodeURIComponent(callbackUrl)}", oauth_signature_method="PLAINTEXT", oauth_signature="${this.consumerSecret}&"`,
+          'Authorization': authHeader,
           'User-Agent': 'DJLibrary/1.0'
         }
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to get request token: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Discogs API response:', response.status, errorText);
+        throw new Error(`Failed to get request token: ${response.status} - ${errorText}`);
       }
 
       const responseText = await response.text();
+      console.log('Discogs request token response:', responseText);
       const params = new URLSearchParams(responseText);
       
       const requestToken = params.get('oauth_token');

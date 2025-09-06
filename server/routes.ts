@@ -1,15 +1,15 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
+import session from "express-session";
 import { storage } from "./storage";
 import { DiscogsService } from "./services/discogs";
 import { z } from "zod";
 
-// Extend Express Request type to include session
-declare global {
-  namespace Express {
-    interface Request {
-      session: any;
-    }
+// Extend Express Session types
+declare module "express-session" {
+  interface SessionData {
+    requestToken?: string;
+    requestSecret?: string;
   }
 }
 
@@ -19,8 +19,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Discogs OAuth routes
   app.get("/api/auth/discogs", async (req, res) => {
     try {
+      // Prevent caching
+      res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.set('Pragma', 'no-cache');
+      res.set('Expires', '0');
+      
       const callbackUrl = `${req.protocol}://${req.get('host')}/api/auth/discogs/callback`;
+      console.log('Initiating OAuth with callback URL:', callbackUrl);
+      
       const { url, requestToken, requestSecret } = await discogsService.generateOAuthUrl(callbackUrl);
+      console.log('Generated OAuth URL:', url);
+      console.log('Request token:', requestToken);
       
       // Store tokens in session or temporary storage
       req.session = req.session || {};
@@ -30,7 +39,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ authUrl: url });
     } catch (error) {
       console.error('OAuth initiation error:', error);
-      res.status(500).json({ message: "Failed to initiate OAuth" });
+      res.status(500).json({ message: "Failed to initiate OAuth", error: error.message });
     }
   });
 
@@ -103,6 +112,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
           </body>
         </html>
       `);
+    }
+  });
+
+  // Token-based authentication
+  app.post("/api/auth/discogs/token", async (req, res) => {
+    try {
+      const { username, token } = req.body;
+      
+      if (!username || !token) {
+        return res.status(400).json({ message: "Username and token are required" });
+      }
+
+      // Test the token by making a simple API call to Discogs
+      const testResponse = await fetch(`https://api.discogs.com/users/${username}`, {
+        headers: {
+          'Authorization': `Discogs token=${token}`,
+          'User-Agent': 'DJLibrary/1.0'
+        }
+      });
+
+      if (!testResponse.ok) {
+        return res.status(401).json({ message: "Invalid credentials. Please check your username and token." });
+      }
+
+      // Token is valid, store it
+      const userId = "demo-user-id";
+      
+      // Ensure demo user exists
+      let user = await storage.getUser(userId);
+      if (!user) {
+        user = await storage.createUser({
+          username: "demo-user",
+          password: "temp-password"
+        });
+      }
+      
+      // Store credentials
+      await storage.updateUserTokens(user.id, token, "", username);
+      
+      res.json({ message: "Successfully connected to Discogs" });
+    } catch (error) {
+      console.error('Token auth error:', error);
+      res.status(500).json({ message: "Failed to connect to Discogs" });
     }
   });
 
