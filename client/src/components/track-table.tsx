@@ -284,10 +284,10 @@ export function TrackTable({
             {/* Header Row - Controls column widths */}
             <div className="bg-secondary border-b border-border">
               <PanelGroup direction="horizontal" onLayout={handleColumnResize}>
-                {columns.map((column, index) => (
-                  <>
+                {columns.flatMap((column, index) => {
+                  const elements = [
                     <Panel 
-                      key={column.id}
+                      key={`panel-${column.id}`}
                       defaultSize={column.size} 
                       minSize={column.minSize} 
                       maxSize={column.maxSize}
@@ -308,11 +308,19 @@ export function TrackTable({
                         {column.label}
                       </div>
                     </Panel>
-                    {index < columns.length - 1 && (
-                      <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                    )}
-                  </>
-                ))}
+                  ];
+                  
+                  if (index < columns.length - 1) {
+                    elements.push(
+                      <PanelResizeHandle 
+                        key={`handle-${column.id}`}
+                        className="w-1 bg-border hover:bg-primary/50 transition-colors" 
+                      />
+                    );
+                  }
+                  
+                  return elements;
+                })}
               </PanelGroup>
             </div>
             
