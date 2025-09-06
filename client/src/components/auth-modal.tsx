@@ -21,8 +21,62 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const data = await response.json();
       
       if (data.authUrl) {
-        // Redirect to Discogs OAuth
-        window.location.href = data.authUrl;
+        // Open Discogs OAuth in a popup window
+        const popup = window.open(
+          data.authUrl,
+          'discogs-auth',
+          'width=600,height=700,scrollbars=yes,resizable=yes'
+        );
+        
+        // Listen for the popup to close or for a callback
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            setIsConnecting(false);
+            // Refresh the page to check connection status
+            window.location.reload();
+          }
+        }, 1000);
+        
+        // Handle the callback message from popup
+        const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+          
+          if (event.data.type === 'DISCOGS_AUTH_SUCCESS') {
+            clearInterval(checkClosed);
+            popup?.close();
+            setIsConnecting(false);
+            onClose();
+            toast({
+              title: "Connected Successfully",
+              description: "Your Discogs account has been connected!",
+            });
+            // Refresh to update connection status
+            window.location.reload();
+          } else if (event.data.type === 'DISCOGS_AUTH_ERROR') {
+            clearInterval(checkClosed);
+            popup?.close();
+            setIsConnecting(false);
+            toast({
+              title: "Connection Failed",
+              description: "Failed to connect to Discogs. Please try again.",
+              variant: "destructive",
+            });
+          }
+        };
+        
+        window.addEventListener('message', handleMessage);
+        
+        // Cleanup after 5 minutes
+        setTimeout(() => {
+          clearInterval(checkClosed);
+          window.removeEventListener('message', handleMessage);
+          if (popup && !popup.closed) {
+            popup.close();
+            setIsConnecting(false);
+          }
+        }, 300000);
+        
       } else {
         throw new Error('Failed to get auth URL');
       }

@@ -39,7 +39,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { oauth_token, oauth_verifier } = req.query;
       
       if (!oauth_token || !oauth_verifier) {
-        return res.status(400).json({ message: "Missing OAuth parameters" });
+        return res.send(`
+          <html>
+            <body>
+              <script>
+                window.opener?.postMessage({ type: 'DISCOGS_AUTH_ERROR', error: 'Missing OAuth parameters' }, '*');
+                window.close();
+              </script>
+              <p>Authentication failed. This window should close automatically.</p>
+            </body>
+          </html>
+        `);
       }
 
       const tokens = await discogsService.exchangeCodeForTokens(oauth_verifier as string);
@@ -51,10 +61,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Store tokens (in production, encrypt these)
       await storage.updateUserTokens(userId, tokens.token, tokens.secret, "demo-username");
       
-      res.redirect("/?connected=true");
+      // Send success message to parent window and close popup
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener?.postMessage({ type: 'DISCOGS_AUTH_SUCCESS' }, '*');
+              window.close();
+            </script>
+            <p>Authentication successful! This window should close automatically.</p>
+          </body>
+        </html>
+      `);
     } catch (error) {
       console.error('OAuth callback error:', error);
-      res.status(500).json({ message: "OAuth callback failed" });
+      res.send(`
+        <html>
+          <body>
+            <script>
+              window.opener?.postMessage({ type: 'DISCOGS_AUTH_ERROR', error: 'OAuth callback failed' }, '*');
+              window.close();
+            </script>
+            <p>Authentication failed. This window should close automatically.</p>
+          </body>
+        </html>
+      `);
     }
   });
 
