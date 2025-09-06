@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         yearTo: z.string().transform(Number).optional(),
         genre: z.string().optional(),
         format: z.string().optional(),
-        sortBy: z.enum(['artist', 'title', 'year']).default('artist'),
+        sortBy: z.enum(['position', 'artist', 'title', 'release', 'year', 'genre', 'format', 'duration']).default('artist'),
         sortOrder: z.enum(['asc', 'desc']).default('asc'),
         page: z.string().transform(Number).default("1"),
         limit: z.string().transform(Number).default("50"),
