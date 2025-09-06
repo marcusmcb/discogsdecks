@@ -25,6 +25,7 @@ export interface IStorage {
     offset?: number;
   }): Promise<{ tracks: Track[]; total: number }>;
   createTrack(track: InsertTrack): Promise<Track>;
+  updateTrack(id: string, updates: Partial<Omit<Track, 'id' | 'userId' | 'releaseId' | 'createdAt'>>): Promise<Track>;
   getTracksByReleaseId(releaseId: string): Promise<Track[]>;
   deleteUserTracks(userId: string): Promise<void>;
   deleteUserReleases(userId: string): Promise<void>;
@@ -132,8 +133,20 @@ export class DatabaseStorage implements IStorage {
       orderByClause = sortOrder === 'asc' ? asc(tracks.artist) : desc(tracks.artist);
     } else if (sortBy === 'title') {
       orderByClause = sortOrder === 'asc' ? asc(tracks.title) : desc(tracks.title);
+    } else if (sortBy === 'position') {
+      orderByClause = sortOrder === 'asc' ? asc(tracks.position) : desc(tracks.position);
+    } else if (sortBy === 'duration') {
+      orderByClause = sortOrder === 'asc' ? asc(tracks.duration) : desc(tracks.duration);
+    } else if (sortBy === 'bpm') {
+      orderByClause = sortOrder === 'asc' ? asc(tracks.bpm) : desc(tracks.bpm);
     } else if (sortBy === 'year') {
       orderByClause = sortOrder === 'asc' ? asc(releases.year) : desc(releases.year);
+    } else if (sortBy === 'genre') {
+      orderByClause = sortOrder === 'asc' ? asc(releases.genre) : desc(releases.genre);
+    } else if (sortBy === 'format') {
+      orderByClause = sortOrder === 'asc' ? asc(releases.format) : desc(releases.format);
+    } else if (sortBy === 'release') {
+      orderByClause = sortOrder === 'asc' ? asc(releases.title) : desc(releases.title);
     } else {
       orderByClause = asc(tracks.artist);
     }
@@ -148,6 +161,7 @@ export class DatabaseStorage implements IStorage {
         title: tracks.title,
         artist: tracks.artist,
         duration: tracks.duration,
+        bpm: tracks.bpm,
         createdAt: tracks.createdAt,
         releaseTitle: releases.title,
         year: releases.year,
@@ -195,6 +209,15 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUserReleases(userId: string): Promise<void> {
     await db.delete(releases).where(eq(releases.userId, userId));
+  }
+
+  async updateTrack(id: string, updates: Partial<Omit<Track, 'id' | 'userId' | 'releaseId' | 'createdAt'>>): Promise<Track> {
+    const [updatedTrack] = await db
+      .update(tracks)
+      .set(updates)
+      .where(eq(tracks.id, id))
+      .returning();
+    return updatedTrack;
   }
 }
 

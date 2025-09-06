@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         yearTo: z.string().transform(Number).optional(),
         genre: z.string().optional(),
         format: z.string().optional(),
-        sortBy: z.enum(['position', 'artist', 'title', 'release', 'year', 'genre', 'format', 'duration']).default('artist'),
+        sortBy: z.enum(['position', 'artist', 'title', 'release', 'year', 'genre', 'format', 'duration', 'bpm']).default('artist'),
         sortOrder: z.enum(['asc', 'desc']).default('asc'),
         page: z.string().transform(Number).default("1"),
         limit: z.string().transform(Number).default("50"),
@@ -240,6 +240,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get tracks error:', error);
       res.status(500).json({ message: "Failed to fetch tracks" });
+    }
+  });
+
+  // Update track
+  app.patch("/api/tracks/:id", async (req, res) => {
+    try {
+      const trackId = req.params.id;
+      
+      // Find the authenticated user
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      // Validate update data
+      const updateSchema = z.object({
+        title: z.string().optional(),
+        artist: z.string().optional(),
+        position: z.string().optional(),
+        duration: z.string().optional(),
+        bpm: z.number().int().positive().optional().nullable(),
+      });
+      
+      const updates = updateSchema.parse(req.body);
+      
+      // Update the track
+      const updatedTrack = await storage.updateTrack(trackId, updates);
+      
+      res.json({ track: updatedTrack });
+    } catch (error) {
+      console.error('Update track error:', error);
+      res.status(500).json({ message: "Failed to update track" });
     }
   });
 
