@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { List, Grid3X3, ChevronLeft, ChevronRight } from "lucide-react";
+import { List, Grid3X3, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
@@ -180,6 +180,49 @@ export function TrackTable({
     setDragOverColumn(null);
   }, [draggedColumn]);
 
+  // Map column IDs to backend sort field names
+  const getSortField = (columnId: string): string => {
+    const sortFieldMap: Record<string, string> = {
+      'position': 'position',
+      'artist': 'artist',
+      'title': 'title',
+      'release': 'release',
+      'year': 'year',
+      'genre': 'genre',
+      'format': 'format',
+      'duration': 'duration'
+    };
+    return sortFieldMap[columnId] || 'artist';
+  };
+
+  const handleColumnSort = useCallback((columnId: string) => {
+    const sortField = getSortField(columnId);
+    let newSortOrder = 'asc';
+    
+    // If clicking the same column, toggle sort order
+    if (filters.sortBy === sortField) {
+      newSortOrder = filters.sortOrder === 'asc' ? 'desc' : 'asc';
+    }
+    
+    onFiltersChange({
+      ...filters,
+      sortBy: sortField,
+      sortOrder: newSortOrder
+    });
+    
+    // Reset to first page when sorting changes
+    onPageChange(1);
+  }, [filters, onFiltersChange, onPageChange]);
+
+  const getSortIcon = (columnId: string) => {
+    const sortField = getSortField(columnId);
+    if (filters.sortBy !== sortField) return null;
+    
+    return filters.sortOrder === 'asc' ? 
+      <ChevronUp className="h-3 w-3 ml-1" /> : 
+      <ChevronDown className="h-3 w-3 ml-1" />;
+  };
+
   const { data: tracksData, isLoading } = useQuery({
     queryKey: [
       '/api/tracks',
@@ -295,19 +338,31 @@ export function TrackTable({
                       maxSize={column.maxSize}
                     >
                       <div 
-                        className={`${column.padding} text-left text-sm font-medium text-muted-foreground cursor-move select-none ${
+                        className={`${column.padding} text-left text-sm font-medium text-muted-foreground select-none flex items-center justify-between group ${
                           draggedColumn === index ? 'opacity-50' : ''
                         } ${
                           dragOverColumn === index ? 'bg-accent' : ''
                         }`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, index)}
-                        onDragOver={(e) => handleDragOver(e, index)}
-                        onDragEnd={handleDragEnd}
-                        onDrop={(e) => handleDrop(e, index)}
-                        title="Drag to reorder column"
                       >
-                        {column.label}
+                        <div 
+                          className="flex items-center cursor-pointer hover:text-foreground flex-1"
+                          onClick={() => handleColumnSort(column.id)}
+                          title={`Sort by ${column.label}`}
+                        >
+                          {column.label}
+                          {getSortIcon(column.id)}
+                        </div>
+                        <div 
+                          className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity px-1"
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, index)}
+                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragEnd={handleDragEnd}
+                          onDrop={(e) => handleDrop(e, index)}
+                          title="Drag to reorder column"
+                        >
+                          ⋮⋮
+                        </div>
                       </div>
                     </Panel>
                   ];
@@ -383,6 +438,8 @@ export function TrackTable({
                   <SelectItem value="50">50</SelectItem>
                   <SelectItem value="100">100</SelectItem>
                   <SelectItem value="200">200</SelectItem>
+                  <SelectItem value="500">500</SelectItem>
+                  <SelectItem value="1000">1000</SelectItem>
                 </SelectContent>
               </Select>
             </div>
