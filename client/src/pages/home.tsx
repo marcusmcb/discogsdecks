@@ -50,16 +50,18 @@ export default function Home() {
         data-testid="sidebar"
       />
       
-      <TrackTable
-        searchQuery={searchQuery}
-        filters={filters}
-        onFiltersChange={setFilters}
-        selectedTrack={selectedTrack}
-        onSelectTrack={setSelectedTrack}
-        currentPage={currentPage}
-        onPageChange={setCurrentPage}
-        data-testid="track-table"
-      />
+      <div className="flex-1">
+        <TrackTable
+          searchQuery={searchQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          selectedTrack={selectedTrack}
+          onSelectTrack={setSelectedTrack}
+          currentPage={currentPage}
+          onPageChange={setCurrentPage}
+          data-testid="track-table"
+        />
+      </div>
 
       {showAuthModal && (
         <AuthModal
