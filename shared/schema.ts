@@ -36,6 +36,7 @@ export const tracks = pgTable("tracks", {
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   duration: text("duration"),
+  bpm: integer("bpm"), // BPM field for beats per minute, nullable by default
   createdAt: timestamp("created_at").defaultNow(),
 });
 
