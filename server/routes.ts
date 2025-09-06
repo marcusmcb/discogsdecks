@@ -77,9 +77,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       );
       
       // Get actual user identity from Discogs
-      console.log('Getting user identity with tokens:', { token: tokens.token, secret: tokens.secret });
       const identity = await discogsService.getUserIdentity(tokens.token, tokens.secret);
-      console.log('Retrieved user identity:', identity);
       
       // Try to find existing user by Discogs username
       let user = await storage.getUserByUsername(identity.username);
