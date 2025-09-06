@@ -66,6 +66,25 @@ export function TrackTable({
       setPageSize(Number(savedPageSize));
     }
   }, []);
+
+  // Load saved sort settings from localStorage on mount
+  useEffect(() => {
+    const savedSort = localStorage.getItem('trackTable-sortSettings');
+    if (savedSort) {
+      try {
+        const { sortBy, sortOrder } = JSON.parse(savedSort);
+        if (sortBy && sortOrder) {
+          onFiltersChange({
+            ...filters,
+            sortBy,
+            sortOrder
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load saved sort settings:', error);
+      }
+    }
+  }, []); // Only run on mount
   
   const defaultColumns: ColumnConfig[] = [
     {
@@ -243,11 +262,19 @@ export function TrackTable({
       newSortOrder = filters.sortOrder === 'asc' ? 'desc' : 'asc';
     }
     
-    onFiltersChange({
+    const newFilters = {
       ...filters,
       sortBy: sortField,
       sortOrder: newSortOrder
-    });
+    };
+    
+    // Save sort settings to localStorage
+    localStorage.setItem('trackTable-sortSettings', JSON.stringify({
+      sortBy: sortField,
+      sortOrder: newSortOrder
+    }));
+    
+    onFiltersChange(newFilters);
     
     // Reset to first page when sorting changes
     onPageChange(1);
