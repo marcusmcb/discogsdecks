@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { List, Grid3X3, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 import { PanelGroup, Panel, PanelResizeHandle } from "react-resizable-panels";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Track {
   id: string;
@@ -11,6 +13,7 @@ interface Track {
   artist: string;
   position?: string;
   duration?: string;
+  bpm?: number | null;
   release: {
     title: string;
     year?: number;
@@ -163,6 +166,16 @@ export function TrackTable({
       getValue: (track) => track.duration || '—',
       className: 'text-muted-foreground',
       padding: 'px-3 py-3'
+    },
+    {
+      id: 'bpm',
+      label: 'BPM',
+      size: 6,
+      minSize: 5,
+      maxSize: 10,
+      getValue: (track) => track.bpm?.toString() || '',
+      className: 'text-muted-foreground',
+      padding: 'px-3 py-3'
     }
   ];
 
@@ -195,6 +208,66 @@ export function TrackTable({
   }, []);
   const [draggedColumn, setDraggedColumn] = useState<number | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
+  const [editingCell, setEditingCell] = useState<{ trackId: string; field: string } | null>(null);
+  const [editValue, setEditValue] = useState<string>('');
+  
+  const queryClient = useQueryClient();
+
+  // Mutation for updating tracks
+  const updateTrackMutation = useMutation({
+    mutationFn: async ({ trackId, updates }: { trackId: string; updates: any }) => {
+      return apiRequest('PATCH', `/api/tracks/${trackId}`, updates);
+    },
+    onSuccess: () => {
+      // Invalidate and refetch tracks
+      queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+    },
+  });
+
+  // Handle cell editing
+  const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
+    setEditingCell({ trackId, field });
+    setEditValue(currentValue || '');
+  }, []);
+
+  const cancelEditing = useCallback(() => {
+    setEditingCell(null);
+    setEditValue('');
+  }, []);
+
+  const saveEdit = useCallback(async () => {
+    if (!editingCell) return;
+    
+    const { trackId, field } = editingCell;
+    let processedValue: any = editValue;
+    
+    // Process value based on field type
+    if (field === 'bpm') {
+      processedValue = editValue === '' ? null : parseInt(editValue, 10);
+      if (isNaN(processedValue)) {
+        processedValue = null;
+      }
+    }
+    
+    try {
+      await updateTrackMutation.mutateAsync({
+        trackId,
+        updates: { [field]: processedValue }
+      });
+      cancelEditing();
+    } catch (error) {
+      console.error('Failed to update track:', error);
+      // Could add toast notification here
+    }
+  }, [editingCell, editValue, updateTrackMutation, cancelEditing]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveEdit();
+    } else if (e.key === 'Escape') {
+      cancelEditing();
+    }
+  }, [saveEdit, cancelEditing]);
 
   const handleColumnResize = useCallback((sizes: number[]) => {
     setColumns(prev => prev.map((col, index) => ({ ...col, size: sizes[index] })));
@@ -248,7 +321,8 @@ export function TrackTable({
       'year': 'year',
       'genre': 'genre',
       'format': 'format',
-      'duration': 'duration'
+      'duration': 'duration',
+      'bpm': 'bpm'
     };
     return sortFieldMap[columnId] || 'artist';
   };
@@ -468,16 +542,38 @@ export function TrackTable({
                   {columns.map((column) => {
                     const value = column.getValue(track, index, currentPage);
                     const testId = `text-${column.id}-${track.id}`;
+                    const isEditing = editingCell?.trackId === track.id && editingCell?.field === column.id;
+                    const isEditable = ['artist', 'title', 'position', 'duration', 'bpm'].includes(column.id);
                     
                     return (
                       <div 
                         key={column.id}
-                        className={`text-sm ${column.className || ''} ${column.padding}`} 
+                        className={`text-sm ${column.className || ''} ${column.padding} ${isEditable ? 'cursor-text' : ''}`} 
                         style={{ width: `${column.size}%` }} 
                         data-testid={testId}
                         title={column.className?.includes('truncate') ? value : undefined}
+                        onDoubleClick={(e) => {
+                          if (isEditable) {
+                            e.stopPropagation();
+                            startEditing(track.id, column.id, value);
+                          }
+                        }}
                       >
-                        {value}
+                        {isEditing ? (
+                          <Input
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            onBlur={saveEdit}
+                            onKeyDown={handleKeyDown}
+                            className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
+                            autoFocus
+                            type={column.id === 'bpm' ? 'number' : 'text'}
+                          />
+                        ) : (
+                          <span className={isEditable ? 'hover:bg-accent/20 rounded px-1 -mx-1' : ''}>
+                            {value}
+                          </span>
+                        )}
                       </div>
                     );
                   })}
