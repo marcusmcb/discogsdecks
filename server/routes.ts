@@ -20,7 +20,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/discogs", async (req, res) => {
     try {
       const callbackUrl = `${req.protocol}://${req.get('host')}/api/auth/discogs/callback`;
-      const { url, requestToken, requestSecret } = discogsService.generateOAuthUrl(callbackUrl);
+      const { url, requestToken, requestSecret } = await discogsService.generateOAuthUrl(callbackUrl);
       
       // Store tokens in session or temporary storage
       req.session = req.session || {};
@@ -52,14 +52,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
       }
 
-      const tokens = await discogsService.exchangeCodeForTokens(oauth_verifier as string);
+      // Get stored request tokens from session
+      const requestToken = req.session?.requestToken;
+      const requestSecret = req.session?.requestSecret;
+      
+      if (!requestToken || !requestSecret) {
+        throw new Error('Request token not found in session');
+      }
+
+      const tokens = await discogsService.exchangeCodeForTokens(oauth_verifier as string, requestToken, requestSecret);
       
       // In a real app, you'd associate this with the logged-in user
       // For demo purposes, we'll use a hardcoded user ID
       const userId = "demo-user-id";
       
+      // Ensure demo user exists
+      let user = await storage.getUser(userId);
+      if (!user) {
+        user = await storage.createUser({
+          username: "demo-user",
+          password: "temp-password" // Not used for OAuth flow
+        });
+      }
+      
       // Store tokens (in production, encrypt these)
-      await storage.updateUserTokens(userId, tokens.token, tokens.secret, "demo-username");
+      await storage.updateUserTokens(user.id, tokens.token, tokens.secret, "demo-username");
       
       // Send success message to parent window and close popup
       res.send(`
