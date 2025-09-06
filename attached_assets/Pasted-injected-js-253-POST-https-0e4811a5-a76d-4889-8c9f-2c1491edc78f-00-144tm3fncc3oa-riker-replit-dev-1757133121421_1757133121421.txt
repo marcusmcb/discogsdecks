@@ -1,0 +1,90 @@
+injected.js:253  POST https://0e4811a5-a76d-4889-8c9f-2c1491edc78f-00-144tm3fncc3oa.riker.replit.dev/api/import 500 (Internal Server Error)
+window.fetch @ Network.js:219
+apply @ injected.js:253
+apiRequest @ queryClient.ts:15
+mutationFn @ import-modal.tsx:21
+fn @ @tanstack_react-query.js?v=99ea9c69:1189
+run @ @tanstack_react-query.js?v=99ea9c69:494
+start @ @tanstack_react-query.js?v=99ea9c69:536
+execute @ @tanstack_react-query.js?v=99ea9c69:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=99ea9c69:2630
+(anonymous) @ @tanstack_react-query.js?v=99ea9c69:3295
+(anonymous) @ import-modal.tsx:47
+commitHookEffectListMount @ chunk-WERSD76P.js?v=99ea9c69:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=99ea9c69:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=99ea9c69:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=99ea9c69:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=99ea9c69:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=99ea9c69:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=99ea9c69:19447
+commitRootImpl @ chunk-WERSD76P.js?v=99ea9c69:19416
+commitRoot @ chunk-WERSD76P.js?v=99ea9c69:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=99ea9c69:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=99ea9c69:9119
+(anonymous) @ chunk-WERSD76P.js?v=99ea9c69:18627Understand this error
+Console.js:61 Import error: Error: 500: {"message":"Import failed"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+Mt.forEach.n.<computed> @ Console.js:61
+onError @ import-modal.tsx:33
+execute @ @tanstack_react-query.js?v=99ea9c69:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=99ea9c69:2630
+(anonymous) @ @tanstack_react-query.js?v=99ea9c69:3295
+(anonymous) @ import-modal.tsx:47
+commitHookEffectListMount @ chunk-WERSD76P.js?v=99ea9c69:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=99ea9c69:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=99ea9c69:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=99ea9c69:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=99ea9c69:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=99ea9c69:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=99ea9c69:19447
+commitRootImpl @ chunk-WERSD76P.js?v=99ea9c69:19416
+commitRoot @ chunk-WERSD76P.js?v=99ea9c69:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=99ea9c69:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=99ea9c69:9119
+(anonymous) @ chunk-WERSD76P.js?v=99ea9c69:18627Understand this error
+Console.js:61 Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+Mt.forEach.n.<computed> @ Console.js:61
+(anonymous) @ @radix-ui_react-dialog.js?v=99ea9c69:337
+commitHookEffectListMount @ chunk-WERSD76P.js?v=99ea9c69:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=99ea9c69:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=99ea9c69:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=99ea9c69:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=99ea9c69:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=99ea9c69:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=99ea9c69:19447
+commitRootImpl @ chunk-WERSD76P.js?v=99ea9c69:19416
+commitRoot @ chunk-WERSD76P.js?v=99ea9c69:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=99ea9c69:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=99ea9c69:9119
+(anonymous) @ chunk-WERSD76P.js?v=99ea9c69:18627Understand this warning
+injected.js:253  POST https://0e4811a5-a76d-4889-8c9f-2c1491edc78f-00-144tm3fncc3oa.riker.replit.dev/api/import 500 (Internal Server Error)
+window.fetch @ Network.js:219
+apply @ injected.js:253
+apiRequest @ queryClient.ts:15
+mutationFn @ import-modal.tsx:21
+fn @ @tanstack_react-query.js?v=99ea9c69:1189
+run @ @tanstack_react-query.js?v=99ea9c69:494
+start @ @tanstack_react-query.js?v=99ea9c69:536
+execute @ @tanstack_react-query.js?v=99ea9c69:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=99ea9c69:2630
+(anonymous) @ @tanstack_react-query.js?v=99ea9c69:3295
+(anonymous) @ import-modal.tsx:47
+commitHookEffectListMount @ chunk-WERSD76P.js?v=99ea9c69:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=99ea9c69:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=99ea9c69:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=99ea9c69:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=99ea9c69:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=99ea9c69:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=99ea9c69:19447
+commitRootImpl @ chunk-WERSD76P.js?v=99ea9c69:19416
+commitRoot @ chunk-WERSD76P.js?v=99ea9c69:19277
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=99ea9c69:18895
+flushSyncCallbacks @ chunk-WERSD76P.js?v=99ea9c69:9119
+(anonymous) @ chunk-WERSD76P.js?v=99ea9c69:18627Understand this error
+Console.js:61 Import error: Error: 500: {"message":"Import failed"}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)

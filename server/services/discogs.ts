@@ -164,14 +164,38 @@ export class DiscogsService {
     }
   }
 
+  private async delay(ms: number) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  private async retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number = 3): Promise<T> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error: any) {
+        if (error.message.includes('429') && attempt < maxRetries) {
+          const backoffMs = Math.pow(2, attempt) * 1000; // Exponential backoff: 2s, 4s, 8s
+          console.log(`Rate limited, retrying in ${backoffMs}ms... (attempt ${attempt}/${maxRetries})`);
+          await this.delay(backoffMs);
+          continue;
+        }
+        throw error;
+      }
+    }
+    throw new Error('Max retries exceeded');
+  }
+
   async getUserCollection(token: string, username: string, page: number = 1): Promise<{
     releases: DiscogsRelease[];
     hasMore: boolean;
     total: number;
   }> {
-    try {
+    return await this.retryWithBackoff(async () => {
+      // Rate limit: wait 1 second between collection requests
+      await this.delay(1000);
+      
       const response = await fetch(
-        `https://api.discogs.com/users/${username}/collection/folders/0/releases?page=${page}&per_page=100`,
+        `https://api.discogs.com/users/${username}/collection/folders/0/releases?page=${page}&per_page=50`,
         {
           headers: {
             'Authorization': `Discogs token=${token}`,
@@ -191,14 +215,14 @@ export class DiscogsService {
         hasMore: data.pagination ? data.pagination.page < data.pagination.pages : false,
         total: data.pagination ? data.pagination.items : 0
       };
-    } catch (error) {
-      console.error('Error fetching collection:', error);
-      throw error;
-    }
+    });
   }
 
   async getReleaseDetails(releaseId: number, token: string): Promise<DiscogsReleaseDetails> {
-    try {
+    return await this.retryWithBackoff(async () => {
+      // Rate limit: wait 2 seconds between release detail requests  
+      await this.delay(2000);
+      
       const response = await fetch(
         `https://api.discogs.com/releases/${releaseId}`,
         {
@@ -214,10 +238,7 @@ export class DiscogsService {
       }
 
       return await response.json();
-    } catch (error) {
-      console.error('Error fetching release details:', error);
-      throw error;
-    }
+    });
   }
 
   async importUserCollection(token: string, username: string, userId: string, storage: any) {
@@ -270,9 +291,7 @@ export class DiscogsService {
           }
           
           totalProcessed++;
-          
-          // Add delay to respect rate limits
-          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(`Processed ${totalProcessed} releases...`);
         } catch (error) {
           console.error(`Error processing release ${release.id}:`, error);
           // Continue with next release
