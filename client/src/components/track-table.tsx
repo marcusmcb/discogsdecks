@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { List, Grid3X3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "react-resizable-panels";
 
 interface Track {
   id: string;
@@ -147,58 +148,211 @@ export function TrackTable({
             </div>
           </div>
         ) : (
-          <div className="h-full overflow-auto scrollbar-thin">
-            <table className="w-full">
-              <thead className="bg-secondary sticky top-0 z-10">
-                <tr className="text-left text-sm font-medium text-muted-foreground">
-                  <th className="px-6 py-3 w-8">#</th>
-                  <th className="px-6 py-3">Artist</th>
-                  <th className="px-6 py-3">Track Title</th>
-                  <th className="px-6 py-3">Release</th>
-                  <th className="px-6 py-3 w-20">Year</th>
-                  <th className="px-6 py-3 w-24">Genre</th>
-                  <th className="px-6 py-3 w-20">Format</th>
-                  <th className="px-6 py-3 w-16">Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tracks.map((track, index) => (
-                  <tr
-                    key={track.id}
-                    className={`table-row border-b border-border text-sm cursor-pointer ${
-                      selectedTrack === track.id ? 'selected' : ''
-                    }`}
-                    onClick={() => onSelectTrack(track.id)}
-                    data-testid={`row-track-${track.id}`}
-                  >
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-position-${track.id}`}>
-                      {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
-                    </td>
-                    <td className="px-6 py-3 font-medium" data-testid={`text-artist-${track.id}`}>
-                      {track.artist}
-                    </td>
-                    <td className="px-6 py-3" data-testid={`text-title-${track.id}`}>
-                      {track.title}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-release-${track.id}`}>
-                      {track.release.title}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-year-${track.id}`}>
-                      {track.release.year || '—'}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-genre-${track.id}`}>
-                      {track.release.genre || '—'}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-format-${track.id}`}>
-                      {track.release.format || '—'}
-                    </td>
-                    <td className="px-6 py-3 text-muted-foreground" data-testid={`text-duration-${track.id}`}>
-                      {track.duration || '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="h-full overflow-hidden">
+            <ResizablePanelGroup direction="horizontal" className="h-full">
+              {/* Position Column */}
+              <ResizablePanel defaultSize={4} minSize={3} maxSize={6}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    #
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track, index) => (
+                      <div
+                        key={`pos-${track.id}`}
+                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-position-${track.id}`}
+                      >
+                        {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Artist Column */}
+              <ResizablePanel defaultSize={20} minSize={10}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Artist
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`artist-${track.id}`}
+                        className={`px-6 py-3 text-sm font-medium border-b border-border cursor-pointer truncate ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-artist-${track.id}`}
+                        title={track.artist}
+                      >
+                        {track.artist}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Track Title Column */}
+              <ResizablePanel defaultSize={25} minSize={15}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Track Title
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`title-${track.id}`}
+                        className={`px-6 py-3 text-sm border-b border-border cursor-pointer truncate ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-title-${track.id}`}
+                        title={track.title}
+                      >
+                        {track.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Release Column */}
+              <ResizablePanel defaultSize={20} minSize={10}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-6 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Release
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`release-${track.id}`}
+                        className={`px-6 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-release-${track.id}`}
+                        title={track.release.title}
+                      >
+                        {track.release.title}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Year Column */}
+              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Year
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`year-${track.id}`}
+                        className={`px-4 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-year-${track.id}`}
+                      >
+                        {track.release.year || '—'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Genre Column */}
+              <ResizablePanel defaultSize={12} minSize={8} maxSize={16}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-4 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Genre
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`genre-${track.id}`}
+                        className={`px-4 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-genre-${track.id}`}
+                        title={track.release.genre || '—'}
+                      >
+                        {track.release.genre || '—'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Format Column */}
+              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Format
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`format-${track.id}`}
+                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer truncate ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-format-${track.id}`}
+                        title={track.release.format || '—'}
+                      >
+                        {track.release.format || '—'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+              
+              <ResizableHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+              
+              {/* Duration Column */}
+              <ResizablePanel defaultSize={8} minSize={6} maxSize={12}>
+                <div className="h-full">
+                  <div className="bg-secondary sticky top-0 z-10 px-3 py-3 text-left text-sm font-medium text-muted-foreground border-b border-border">
+                    Duration
+                  </div>
+                  <div className="overflow-auto h-full">
+                    {tracks.map((track) => (
+                      <div
+                        key={`duration-${track.id}`}
+                        className={`px-3 py-3 text-sm text-muted-foreground border-b border-border cursor-pointer ${
+                          selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
+                        }`}
+                        onClick={() => onSelectTrack(track.id)}
+                        data-testid={`text-duration-${track.id}`}
+                      >
+                        {track.duration || '—'}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </div>
         )}
       </div>
