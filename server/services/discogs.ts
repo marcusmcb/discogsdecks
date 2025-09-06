@@ -48,12 +48,13 @@ export class DiscogsService {
       const timestamp = Math.floor(Date.now() / 1000);
       const nonce = Math.random().toString(36).substring(2, 15);
       
-      // Build Authorization header as per Discogs OAuth 1.0a spec
+      // Build Authorization header exactly as per Discogs documentation
       const authHeader = `OAuth oauth_consumer_key="${this.consumerKey}", oauth_nonce="${nonce}", oauth_signature="${this.consumerSecret}&", oauth_signature_method="PLAINTEXT", oauth_timestamp="${timestamp}", oauth_callback="${encodeURIComponent(callbackUrl)}"`;
       
       const response = await fetch('https://api.discogs.com/oauth/request_token', {
         method: 'GET',
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': authHeader,
           'User-Agent': 'DJLibrary/1.0'
         }
@@ -93,12 +94,14 @@ export class DiscogsService {
       const timestamp = Math.floor(Date.now() / 1000);
       const nonce = Math.random().toString(36).substring(2, 15);
       
-      // Build Authorization header for token exchange
-      const authHeader = `OAuth oauth_consumer_key="${this.consumerKey}", oauth_token="${requestToken}", oauth_verifier="${verifier}", oauth_nonce="${nonce}", oauth_signature="${this.consumerSecret}&${requestSecret}", oauth_signature_method="PLAINTEXT", oauth_timestamp="${timestamp}"`;
+      // Build Authorization header exactly as per Discogs documentation
+      // For access token, signature = consumer_secret&request_token_secret
+      const authHeader = `OAuth oauth_consumer_key="${this.consumerKey}", oauth_nonce="${nonce}", oauth_token="${requestToken}", oauth_signature="${this.consumerSecret}&${requestSecret}", oauth_signature_method="PLAINTEXT", oauth_timestamp="${timestamp}", oauth_verifier="${verifier}"`;
 
       const response = await fetch('https://api.discogs.com/oauth/access_token', {
-        method: 'GET',
+        method: 'POST',
         headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
           'Authorization': authHeader,
           'User-Agent': 'DJLibrary/1.0'
         }

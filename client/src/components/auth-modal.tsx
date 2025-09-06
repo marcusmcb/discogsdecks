@@ -11,9 +11,6 @@ interface AuthModalProps {
 
 export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [isConnecting, setIsConnecting] = useState(false);
-  const [showTokenForm, setShowTokenForm] = useState(false);
-  const [username, setUsername] = useState("");
-  const [token, setToken] = useState("");
   const { toast } = useToast();
 
   const handleConnect = async () => {
@@ -94,45 +91,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
-  const handleTokenConnect = async () => {
-    setIsConnecting(true);
-    
-    try {
-      const response = await fetch('/api/auth/discogs/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username,
-          token
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok) {
-        setIsConnecting(false);
-        onClose();
-        toast({
-          title: "Connected Successfully",
-          description: "Your Discogs account has been connected!",
-        });
-        // Refresh to update connection status
-        window.location.reload();
-      } else {
-        throw new Error(data.message || 'Failed to connect');
-      }
-    } catch (error) {
-      console.error('Connection error:', error);
-      toast({
-        title: "Connection Failed",
-        description: "Failed to connect to Discogs. Please check your credentials.",
-        variant: "destructive",
-      });
-      setIsConnecting(false);
-    }
-  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -164,80 +122,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
               ) : (
                 <>
                   <Link className="mr-2 h-4 w-4" />
-                  Connect via OAuth
+                  Connect Discogs Account
                 </>
               )}
             </Button>
-            
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or
-                </span>
-              </div>
-            </div>
-            
-            <Button 
-              variant="outline" 
-              className="w-full" 
-              onClick={() => setShowTokenForm(!showTokenForm)}
-              data-testid="button-use-token"
-            >
-              Use Personal Access Token
-            </Button>
-            
-            {showTokenForm && (
-              <div className="space-y-3 p-4 border rounded-lg bg-muted/50">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Discogs Username</label>
-                  <input 
-                    type="text" 
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                    placeholder="Your Discogs username"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    data-testid="input-discogs-username"
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Personal Access Token</label>
-                  <input 
-                    type="password" 
-                    className="w-full px-3 py-2 border border-border rounded-md bg-background text-foreground"
-                    placeholder="Your Discogs token"
-                    value={token}
-                    onChange={(e) => setToken(e.target.value)}
-                    data-testid="input-discogs-token"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Get your token from: Discogs → Settings → Developer Settings → Generate Token
-                  </p>
-                </div>
-                
-                <Button 
-                  className="w-full" 
-                  onClick={handleTokenConnect}
-                  disabled={isConnecting || !username || !token}
-                  data-testid="button-connect-with-token"
-                >
-                  {isConnecting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin mr-2" />
-                      Connecting...
-                    </>
-                  ) : (
-                    <>
-                      <Link className="mr-2 h-4 w-4" />
-                      Connect with Token
-                    </>
-                  )}
-                </Button>
-              </div>
-            )}
             
             <Button 
               variant="ghost" 
