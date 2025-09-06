@@ -36,6 +36,17 @@ interface TrackTableProps {
   onPageChange: (page: number) => void;
 }
 
+interface ColumnConfig {
+  id: string;
+  label: string;
+  size: number;
+  minSize: number;
+  maxSize?: number;
+  getValue: (track: Track, index: number, currentPage: number) => string;
+  className?: string;
+  padding: string;
+}
+
 export function TrackTable({
   searchQuery,
   filters,
@@ -46,11 +57,127 @@ export function TrackTable({
   onPageChange,
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [columnSizes, setColumnSizes] = useState([4, 19, 24, 19, 8, 11, 8, 7]);
+  
+  const defaultColumns: ColumnConfig[] = [
+    {
+      id: 'position',
+      label: '#',
+      size: 4,
+      minSize: 3,
+      maxSize: 6,
+      getValue: (_, index, currentPage) => String(index + 1 + (currentPage - 1) * 50).padStart(3, '0'),
+      className: 'text-muted-foreground',
+      padding: 'px-3 py-3'
+    },
+    {
+      id: 'artist',
+      label: 'Artist',
+      size: 19,
+      minSize: 10,
+      getValue: (track) => track.artist,
+      className: 'font-medium truncate',
+      padding: 'px-6 py-3'
+    },
+    {
+      id: 'title',
+      label: 'Track Title',
+      size: 24,
+      minSize: 15,
+      getValue: (track) => track.title,
+      className: 'truncate',
+      padding: 'px-6 py-3'
+    },
+    {
+      id: 'release',
+      label: 'Release',
+      size: 19,
+      minSize: 10,
+      getValue: (track) => track.release.title,
+      className: 'text-muted-foreground truncate',
+      padding: 'px-6 py-3'
+    },
+    {
+      id: 'year',
+      label: 'Year',
+      size: 8,
+      minSize: 6,
+      maxSize: 12,
+      getValue: (track) => track.release.year?.toString() || '—',
+      className: 'text-muted-foreground',
+      padding: 'px-4 py-3'
+    },
+    {
+      id: 'genre',
+      label: 'Genre',
+      size: 11,
+      minSize: 8,
+      maxSize: 16,
+      getValue: (track) => track.release.genre || '—',
+      className: 'text-muted-foreground truncate',
+      padding: 'px-4 py-3'
+    },
+    {
+      id: 'format',
+      label: 'Format',
+      size: 8,
+      minSize: 6,
+      maxSize: 12,
+      getValue: (track) => track.release.format || '—',
+      className: 'text-muted-foreground truncate',
+      padding: 'px-3 py-3'
+    },
+    {
+      id: 'duration',
+      label: 'Duration',
+      size: 7,
+      minSize: 6,
+      maxSize: 12,
+      getValue: (track) => track.duration || '—',
+      className: 'text-muted-foreground',
+      padding: 'px-3 py-3'
+    }
+  ];
+
+  const [columns, setColumns] = useState<ColumnConfig[]>(defaultColumns);
+  const [draggedColumn, setDraggedColumn] = useState<number | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<number | null>(null);
 
   const handleColumnResize = useCallback((sizes: number[]) => {
-    setColumnSizes(sizes);
+    setColumns(prev => prev.map((col, index) => ({ ...col, size: sizes[index] })));
   }, []);
+
+  const handleDragStart = useCallback((e: React.DragEvent, columnIndex: number) => {
+    setDraggedColumn(columnIndex);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/html', e.currentTarget.outerHTML);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, columnIndex: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverColumn(columnIndex);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedColumn === null || draggedColumn === dropIndex) return;
+
+    setColumns(prev => {
+      const newColumns = [...prev];
+      const draggedCol = newColumns[draggedColumn];
+      newColumns.splice(draggedColumn, 1);
+      newColumns.splice(dropIndex, 0, draggedCol);
+      return newColumns;
+    });
+    
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  }, [draggedColumn]);
 
   const { data: tracksData, isLoading } = useQuery({
     queryKey: [
@@ -157,53 +284,35 @@ export function TrackTable({
             {/* Header Row - Controls column widths */}
             <div className="bg-secondary border-b border-border">
               <PanelGroup direction="horizontal" onLayout={handleColumnResize}>
-                <Panel defaultSize={columnSizes[0]} minSize={3} maxSize={6}>
-                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
-                    #
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[1]} minSize={10}>
-                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Artist
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[2]} minSize={15}>
-                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Track Title
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[3]} minSize={10}>
-                  <div className="px-6 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Release
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[4]} minSize={6} maxSize={12}>
-                  <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Year
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[5]} minSize={8} maxSize={16}>
-                  <div className="px-4 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Genre
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[6]} minSize={6} maxSize={12}>
-                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Format
-                  </div>
-                </Panel>
-                <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
-                <Panel defaultSize={columnSizes[7]} minSize={6} maxSize={12}>
-                  <div className="px-3 py-3 text-left text-sm font-medium text-muted-foreground">
-                    Duration
-                  </div>
-                </Panel>
+                {columns.map((column, index) => (
+                  <>
+                    <Panel 
+                      key={column.id}
+                      defaultSize={column.size} 
+                      minSize={column.minSize} 
+                      maxSize={column.maxSize}
+                    >
+                      <div 
+                        className={`${column.padding} text-left text-sm font-medium text-muted-foreground cursor-move select-none ${
+                          draggedColumn === index ? 'opacity-50' : ''
+                        } ${
+                          dragOverColumn === index ? 'bg-accent' : ''
+                        }`}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, index)}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDragEnd={handleDragEnd}
+                        onDrop={(e) => handleDrop(e, index)}
+                        title="Drag to reorder column"
+                      >
+                        {column.label}
+                      </div>
+                    </Panel>
+                    {index < columns.length - 1 && (
+                      <PanelResizeHandle className="w-1 bg-border hover:bg-primary/50 transition-colors" />
+                    )}
+                  </>
+                ))}
               </PanelGroup>
             </div>
             
@@ -218,30 +327,22 @@ export function TrackTable({
                   onClick={() => onSelectTrack(track.id)}
                   data-testid={`row-track-${track.id}`}
                 >
-                  <div className="px-3 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[0]}%` }} data-testid={`text-position-${track.id}`}>
-                    {String(index + 1 + (currentPage - 1) * 50).padStart(3, '0')}
-                  </div>
-                  <div className="px-6 py-3 text-sm font-medium truncate" style={{ width: `${columnSizes[1]}%` }} data-testid={`text-artist-${track.id}`} title={track.artist}>
-                    {track.artist}
-                  </div>
-                  <div className="px-6 py-3 text-sm truncate" style={{ width: `${columnSizes[2]}%` }} data-testid={`text-title-${track.id}`} title={track.title}>
-                    {track.title}
-                  </div>
-                  <div className="px-6 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[3]}%` }} data-testid={`text-release-${track.id}`} title={track.release.title}>
-                    {track.release.title}
-                  </div>
-                  <div className="px-4 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[4]}%` }} data-testid={`text-year-${track.id}`}>
-                    {track.release.year || '—'}
-                  </div>
-                  <div className="px-4 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[5]}%` }} data-testid={`text-genre-${track.id}`} title={track.release.genre || '—'}>
-                    {track.release.genre || '—'}
-                  </div>
-                  <div className="px-3 py-3 text-sm text-muted-foreground truncate" style={{ width: `${columnSizes[6]}%` }} data-testid={`text-format-${track.id}`} title={track.release.format || '—'}>
-                    {track.release.format || '—'}
-                  </div>
-                  <div className="px-3 py-3 text-sm text-muted-foreground" style={{ width: `${columnSizes[7]}%` }} data-testid={`text-duration-${track.id}`}>
-                    {track.duration || '—'}
-                  </div>
+                  {columns.map((column) => {
+                    const value = column.getValue(track, index, currentPage);
+                    const testId = `text-${column.id}-${track.id}`;
+                    
+                    return (
+                      <div 
+                        key={column.id}
+                        className={`text-sm ${column.className || ''} ${column.padding}`} 
+                        style={{ width: `${column.size}%` }} 
+                        data-testid={testId}
+                        title={column.className?.includes('truncate') ? value : undefined}
+                      >
+                        {value}
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
