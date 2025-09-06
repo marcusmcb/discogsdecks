@@ -1,8 +1,17 @@
-import type { Express } from "express";
+import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { DiscogsService } from "./services/discogs";
 import { z } from "zod";
+
+// Extend Express Request type to include session
+declare global {
+  namespace Express {
+    interface Request {
+      session: any;
+    }
+  }
+}
 
 const discogsService = new DiscogsService();
 
@@ -88,8 +97,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         format: z.string().optional(),
         sortBy: z.enum(['artist', 'title', 'year']).default('artist'),
         sortOrder: z.enum(['asc', 'desc']).default('asc'),
-        page: z.string().transform(Number).default(1),
-        limit: z.string().transform(Number).default(50),
+        page: z.string().transform(Number).default("1"),
+        limit: z.string().transform(Number).default("50"),
       });
 
       const filters = searchSchema.parse(req.query);
