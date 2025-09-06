@@ -118,8 +118,23 @@ export class DatabaseStorage implements IStorage {
 
     const total = Number(countResult[0]?.count || 0);
 
-    // Build main query
-    let query = db
+    // Determine sorting
+    const sortBy = filters?.sortBy || 'artist';
+    const sortOrder = filters?.sortOrder || 'asc';
+    
+    let orderByClause;
+    if (sortBy === 'artist') {
+      orderByClause = sortOrder === 'asc' ? asc(tracks.artist) : desc(tracks.artist);
+    } else if (sortBy === 'title') {
+      orderByClause = sortOrder === 'asc' ? asc(tracks.title) : desc(tracks.title);
+    } else if (sortBy === 'year') {
+      orderByClause = sortOrder === 'asc' ? asc(releases.year) : desc(releases.year);
+    } else {
+      orderByClause = asc(tracks.artist);
+    }
+
+    // Build main query with all clauses
+    let queryBuilder = db
       .select({
         id: tracks.id,
         releaseId: tracks.releaseId,
@@ -136,29 +151,18 @@ export class DatabaseStorage implements IStorage {
       })
       .from(tracks)
       .innerJoin(releases, eq(tracks.releaseId, releases.id))
-      .where(and(...whereConditions));
-
-    // Apply sorting
-    const sortBy = filters?.sortBy || 'artist';
-    const sortOrder = filters?.sortOrder || 'asc';
-    
-    if (sortBy === 'artist') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(tracks.artist) : desc(tracks.artist));
-    } else if (sortBy === 'title') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(tracks.title) : desc(tracks.title));
-    } else if (sortBy === 'year') {
-      query = query.orderBy(sortOrder === 'asc' ? asc(releases.year) : desc(releases.year));
-    }
+      .where(and(...whereConditions))
+      .orderBy(orderByClause);
 
     // Apply pagination
     if (filters?.limit) {
-      query = query.limit(filters.limit);
+      queryBuilder = queryBuilder.limit(filters.limit);
     }
     if (filters?.offset) {
-      query = query.offset(filters.offset);
+      queryBuilder = queryBuilder.offset(filters.offset);
     }
 
-    const results = await query;
+    const results = await queryBuilder;
     
     // Transform results to include release data
     const trackResults = results.map(row => ({

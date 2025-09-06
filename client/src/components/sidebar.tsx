@@ -115,12 +115,12 @@ export function Sidebar({
           {/* Genre Filter */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Genre</Label>
-            <Select value={filters.genre} onValueChange={(value) => onFiltersChange({ ...filters, genre: value })}>
+            <Select value={filters.genre} onValueChange={(value) => onFiltersChange({ ...filters, genre: value === "all" ? "" : value })}>
               <SelectTrigger data-testid="select-genre">
                 <SelectValue placeholder="All Genres" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Genres</SelectItem>
+                <SelectItem value="all">All Genres</SelectItem>
                 <SelectItem value="Electronic">Electronic</SelectItem>
                 <SelectItem value="House">House</SelectItem>
                 <SelectItem value="Techno">Techno</SelectItem>
@@ -132,12 +132,12 @@ export function Sidebar({
           {/* Format Filter */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Format</Label>
-            <Select value={filters.format} onValueChange={(value) => onFiltersChange({ ...filters, format: value })}>
+            <Select value={filters.format} onValueChange={(value) => onFiltersChange({ ...filters, format: value === "all" ? "" : value })}>
               <SelectTrigger data-testid="select-format">
                 <SelectValue placeholder="All Formats" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Formats</SelectItem>
+                <SelectItem value="all">All Formats</SelectItem>
                 <SelectItem value="Vinyl">Vinyl</SelectItem>
                 <SelectItem value="CD">CD</SelectItem>
                 <SelectItem value="Digital">Digital</SelectItem>
