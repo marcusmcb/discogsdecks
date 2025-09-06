@@ -242,7 +242,7 @@ export function TrackTable({
     let processedValue: any = editValue;
     
     // Process value based on field type
-    if (field === 'bpm') {
+    if (field === 'bpm' || field === 'year') {
       processedValue = editValue === '' ? null : parseInt(editValue, 10);
       if (isNaN(processedValue)) {
         processedValue = null;
@@ -543,7 +543,7 @@ export function TrackTable({
                     const value = column.getValue(track, index, currentPage);
                     const testId = `text-${column.id}-${track.id}`;
                     const isEditing = editingCell?.trackId === track.id && editingCell?.field === column.id;
-                    const isEditable = ['artist', 'title', 'position', 'duration', 'bpm'].includes(column.id);
+                    const isEditable = ['artist', 'title', 'position', 'duration', 'bpm', 'year', 'genre', 'format', 'release'].includes(column.id);
                     
                     return (
                       <div 
@@ -567,7 +567,7 @@ export function TrackTable({
                             onKeyDown={handleKeyDown}
                             className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
                             autoFocus
-                            type={column.id === 'bpm' ? 'number' : 'text'}
+                            type={column.id === 'bpm' || column.id === 'year' ? 'number' : 'text'}
                           />
                         ) : (
                           <span className={isEditable ? 'hover:bg-accent/20 rounded px-1 -mx-1' : ''}>

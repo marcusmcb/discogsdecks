@@ -26,6 +26,7 @@ export interface IStorage {
   }): Promise<{ tracks: Track[]; total: number }>;
   createTrack(track: InsertTrack): Promise<Track>;
   updateTrack(id: string, updates: Partial<Omit<Track, 'id' | 'userId' | 'releaseId' | 'createdAt'>>): Promise<Track>;
+  updateRelease(id: string, updates: Partial<Omit<Release, 'id' | 'userId' | 'discogsId' | 'createdAt'>>): Promise<Release>;
   getTracksByReleaseId(releaseId: string): Promise<Track[]>;
   deleteUserTracks(userId: string): Promise<void>;
   deleteUserReleases(userId: string): Promise<void>;
@@ -218,6 +219,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(tracks.id, id))
       .returning();
     return updatedTrack;
+  }
+
+  async updateRelease(id: string, updates: Partial<Omit<Release, 'id' | 'userId' | 'discogsId' | 'createdAt'>>): Promise<Release> {
+    const [updatedRelease] = await db
+      .update(releases)
+      .set(updates)
+      .where(eq(releases.id, id))
+      .returning();
+    return updatedRelease;
   }
 }
 

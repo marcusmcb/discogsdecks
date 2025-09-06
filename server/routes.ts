@@ -256,21 +256,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "User not authenticated" });
       }
       
-      // Validate update data
+      // Validate update data - separate track fields from release fields
       const updateSchema = z.object({
+        // Track fields
         title: z.string().optional(),
         artist: z.string().optional(),
         position: z.string().optional(),
         duration: z.string().optional(),
         bpm: z.number().int().positive().optional().nullable(),
+        // Release fields
+        year: z.number().int().optional(),
+        genre: z.string().optional(),
+        format: z.string().optional(),
+        release: z.string().optional(), // release title
       });
       
       const updates = updateSchema.parse(req.body);
       
-      // Update the track
-      const updatedTrack = await storage.updateTrack(trackId, updates);
+      // Separate track updates from release updates
+      const trackUpdates = {
+        ...(updates.title && { title: updates.title }),
+        ...(updates.artist && { artist: updates.artist }),
+        ...(updates.position && { position: updates.position }),
+        ...(updates.duration && { duration: updates.duration }),
+        ...(updates.bpm !== undefined && { bpm: updates.bpm }),
+      };
       
-      res.json({ track: updatedTrack });
+      const releaseUpdates = {
+        ...(updates.year && { year: updates.year }),
+        ...(updates.genre && { genre: updates.genre }),
+        ...(updates.format && { format: updates.format }),
+        ...(updates.release && { title: updates.release }),
+      };
+      
+      let updatedTrack;
+      
+      // Update track if there are track fields to update
+      if (Object.keys(trackUpdates).length > 0) {
+        updatedTrack = await storage.updateTrack(trackId, trackUpdates);
+      }
+      
+      // Update release if there are release fields to update
+      if (Object.keys(releaseUpdates).length > 0) {
+        // Get the track to find its release ID
+        const tracks = await storage.getUserTracks(user.id, { limit: 0 });
+        const track = tracks.tracks.find((t: any) => t.id === trackId);
+        
+        if (track) {
+          await storage.updateRelease(track.releaseId, releaseUpdates);
+        }
+      }
+      
+      res.json({ success: true });
     } catch (error) {
       console.error('Update track error:', error);
       res.status(500).json({ message: "Failed to update track" });
