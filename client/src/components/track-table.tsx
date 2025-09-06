@@ -343,22 +343,29 @@ export function TrackTable({
                         } ${
                           dragOverColumn === index ? 'bg-accent' : ''
                         }`}
+                        onDragOver={(e) => handleDragOver(e, index)}
+                        onDrop={(e) => handleDrop(e, index)}
                       >
                         <div 
                           className="flex items-center cursor-pointer hover:text-foreground flex-1"
-                          onClick={() => handleColumnSort(column.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleColumnSort(column.id);
+                          }}
                           title={`Sort by ${column.label}`}
                         >
                           {column.label}
                           {getSortIcon(column.id)}
                         </div>
                         <div 
-                          className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity px-1"
+                          className="cursor-move opacity-0 group-hover:opacity-100 transition-opacity px-1 text-xs"
                           draggable
-                          onDragStart={(e) => handleDragStart(e, index)}
-                          onDragOver={(e) => handleDragOver(e, index)}
+                          onDragStart={(e) => {
+                            e.stopPropagation();
+                            handleDragStart(e, index);
+                          }}
                           onDragEnd={handleDragEnd}
-                          onDrop={(e) => handleDrop(e, index)}
+                          onClick={(e) => e.stopPropagation()}
                           title="Drag to reorder column"
                         >
                           ⋮⋮
