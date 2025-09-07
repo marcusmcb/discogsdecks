@@ -221,8 +221,16 @@ export function TrackTable({
       return apiRequest('PATCH', `/api/tracks/${trackId}`, updates);
     },
     onSuccess: () => {
-      // Invalidate and refetch tracks
+      // Invalidate and refetch tracks in main collection
       queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+      
+      // Invalidate all crate track queries (since the track might be in multiple crates)
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          return query.queryKey[0]?.toString().startsWith('/api/crates/') && 
+                 query.queryKey[0]?.toString().endsWith('/tracks');
+        }
+      });
     },
   });
 
