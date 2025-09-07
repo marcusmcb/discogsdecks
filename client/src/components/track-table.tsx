@@ -582,13 +582,16 @@ export function TrackTable({
 
   // Handle bulk location assignment
   const handleBulkLocationAssignment = useCallback(() => {
-    if (!bulkLocationId || tracks.length === 0) return;
+    if (!bulkLocationId) return;
     
-    const trackIds = tracks.map(track => track.id);
+    const currentTracks = tracksData?.tracks || [];
+    if (currentTracks.length === 0) return;
+    
+    const trackIds = currentTracks.map(track => track.id);
     const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
     
     bulkLocationUpdateMutation.mutate({ trackIds, locationId });
-  }, [bulkLocationId, tracks, bulkLocationUpdateMutation]);
+  }, [bulkLocationId, tracksData?.tracks, bulkLocationUpdateMutation]);
 
   // Handle cell editing
   const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
@@ -596,7 +599,8 @@ export function TrackTable({
     
     // For location field, convert location name to ID for the dropdown
     if (field === 'location') {
-      const track = tracks.find(t => t.id === trackId);
+      const currentTracks = tracksData?.tracks || [];
+      const track = currentTracks.find(t => t.id === trackId);
       if (track?.location) {
         const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || '';
         setEditValue(locationId);
@@ -606,7 +610,7 @@ export function TrackTable({
     } else {
       setEditValue(currentValue || '');
     }
-  }, [tracks, locationsData]);
+  }, [tracksData?.tracks, locationsData]);
 
   return (
     <div className="h-full flex flex-col" data-testid="track-table-container">
