@@ -46,8 +46,10 @@ export default function Home() {
     mutationFn: async ({ crateId, trackId }: { crateId: string; trackId: string }) => {
       return apiRequest('POST', `/api/crates/${crateId}/tracks`, { trackId });
     },
-    onSuccess: () => {
+    onSuccess: (_, { crateId }) => {
+      // Invalidate crates list and specific crate tracks
       queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/crates/${crateId}/tracks`] });
     },
   });
   

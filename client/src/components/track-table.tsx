@@ -380,9 +380,13 @@ export function TrackTable({
           locationId: editValue === '' ? null : editValue
         });
         
-        // Invalidate queries to refetch the data with updated location
-        queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
-        queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+        // Invalidate specific queries to refetch the data with updated location
+        queryClient.invalidateQueries({ 
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+          }
+        });
         
         cancelEditing();
         return;

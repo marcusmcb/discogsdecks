@@ -68,6 +68,12 @@ export function LocationModal({ isOpen, onClose, editingLocation }: LocationModa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+        }
+      });
       toast({
         title: "Location Created",
         description: `Location "${name}" has been created successfully.`,
@@ -89,6 +95,12 @@ export function LocationModal({ isOpen, onClose, editingLocation }: LocationModa
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+        }
+      });
       toast({
         title: "Location Updated",
         description: `Location "${name}" has been updated successfully.`,

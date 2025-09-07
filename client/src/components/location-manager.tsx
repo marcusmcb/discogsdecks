@@ -39,7 +39,12 @@ export function LocationManager() {
     },
     onSuccess: (_, locationId) => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+        }
+      });
       toast({
         title: "Location Deleted",
         description: "Location has been deleted successfully.",
