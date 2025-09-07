@@ -691,7 +691,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.bulkUpdateTracksLocation(trackIds, locationId, user.id);
       console.log('ROUTE: Storage call completed successfully');
       
-      res.json({ success: true, updated: trackIds.length });
+      res.json({ 
+        success: true, 
+        updated: trackIds.length,
+        source: "REAL_BULK_HANDLER",
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       console.error('ROUTE: Bulk update tracks location error:', error);
       res.status(500).json({ message: "Failed to bulk update track locations" });
