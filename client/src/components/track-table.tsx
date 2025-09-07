@@ -764,7 +764,7 @@ export function TrackTable({
                             <Input
                               value={editValue}
                               onChange={(e) => setEditValue(e.target.value)}
-                              onBlur={saveEdit}
+                              onBlur={() => saveEdit()}
                               onKeyDown={handleKeyDown}
                               className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
                               autoFocus
