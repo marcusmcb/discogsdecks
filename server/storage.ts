@@ -1,4 +1,4 @@
-import { users, releases, tracks, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack } from "@shared/schema";
+import { users, releases, tracks, crates, crateTracks, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ilike, or, desc, asc, sql, count } from "drizzle-orm";
 
@@ -30,6 +30,16 @@ export interface IStorage {
   getTracksByReleaseId(releaseId: string): Promise<Track[]>;
   deleteUserTracks(userId: string): Promise<void>;
   deleteUserReleases(userId: string): Promise<void>;
+  
+  // Crate management
+  getUserCrates(userId: string): Promise<Crate[]>;
+  createCrate(crate: InsertCrate): Promise<Crate>;
+  updateCrate(id: string, updates: Partial<Omit<Crate, 'id' | 'userId' | 'createdAt'>>): Promise<Crate>;
+  deleteCrate(id: string): Promise<void>;
+  addTrackToCrate(crateId: string, trackId: string): Promise<CrateTrack>;
+  removeTrackFromCrate(crateId: string, trackId: string): Promise<void>;
+  getCrateTracks(crateId: string): Promise<Track[]>;
+  isTrackInCrate(crateId: string, trackId: string): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -228,6 +238,102 @@ export class DatabaseStorage implements IStorage {
       .where(eq(releases.id, id))
       .returning();
     return updatedRelease;
+  }
+
+  async getUserCrates(userId: string): Promise<Crate[]> {
+    return await db.select().from(crates).where(eq(crates.userId, userId)).orderBy(asc(crates.createdAt));
+  }
+
+  async createCrate(crate: InsertCrate): Promise<Crate> {
+    const [newCrate] = await db
+      .insert(crates)
+      .values(crate)
+      .returning();
+    return newCrate;
+  }
+
+  async updateCrate(id: string, updates: Partial<Omit<Crate, 'id' | 'userId' | 'createdAt'>>): Promise<Crate> {
+    const [updatedCrate] = await db
+      .update(crates)
+      .set(updates)
+      .where(eq(crates.id, id))
+      .returning();
+    return updatedCrate;
+  }
+
+  async deleteCrate(id: string): Promise<void> {
+    // First delete all crate-track relationships
+    await db.delete(crateTracks).where(eq(crateTracks.crateId, id));
+    // Then delete the crate itself
+    await db.delete(crates).where(eq(crates.id, id));
+  }
+
+  async addTrackToCrate(crateId: string, trackId: string): Promise<CrateTrack> {
+    // Check if track is already in crate to avoid duplicates
+    const existing = await db
+      .select()
+      .from(crateTracks)
+      .where(and(eq(crateTracks.crateId, crateId), eq(crateTracks.trackId, trackId)));
+    
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    const [crateTrack] = await db
+      .insert(crateTracks)
+      .values({ crateId, trackId })
+      .returning();
+    return crateTrack;
+  }
+
+  async removeTrackFromCrate(crateId: string, trackId: string): Promise<void> {
+    await db
+      .delete(crateTracks)
+      .where(and(eq(crateTracks.crateId, crateId), eq(crateTracks.trackId, trackId)));
+  }
+
+  async getCrateTracks(crateId: string): Promise<Track[]> {
+    const results = await db
+      .select({
+        id: tracks.id,
+        releaseId: tracks.releaseId,
+        userId: tracks.userId,
+        position: tracks.position,
+        title: tracks.title,
+        artist: tracks.artist,
+        duration: tracks.duration,
+        bpm: tracks.bpm,
+        createdAt: tracks.createdAt,
+        releaseTitle: releases.title,
+        year: releases.year,
+        genre: releases.genre,
+        format: releases.format,
+      })
+      .from(crateTracks)
+      .innerJoin(tracks, eq(crateTracks.trackId, tracks.id))
+      .innerJoin(releases, eq(tracks.releaseId, releases.id))
+      .where(eq(crateTracks.crateId, crateId))
+      .orderBy(asc(crateTracks.addedAt));
+
+    // Transform results to include release data
+    return results.map(row => ({
+      ...row,
+      release: {
+        title: row.releaseTitle,
+        year: row.year,
+        genre: row.genre,
+        format: row.format,
+      }
+    })) as any;
+  }
+
+  async isTrackInCrate(crateId: string, trackId: string): Promise<boolean> {
+    const result = await db
+      .select({ count: count() })
+      .from(crateTracks)
+      .where(and(eq(crateTracks.crateId, crateId), eq(crateTracks.trackId, trackId)));
+    
+    return (result[0]?.count || 0) > 0;
   }
 }
 
