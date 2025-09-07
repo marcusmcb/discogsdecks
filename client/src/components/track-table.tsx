@@ -357,24 +357,24 @@ export function TrackTable({
     setEditValue('');
   }, []);
 
-  const saveEdit = useCallback(async () => {
+  const saveEdit = useCallback(async (overrideValue?: string) => {
     if (!editingCell) return;
     
     const { trackId, field } = editingCell;
-    let processedValue: any = editValue;
+    const valueToUse = overrideValue !== undefined ? overrideValue : editValue;
+    let processedValue: any = valueToUse;
     
     // Process value based on field type
     if (field === 'bpm' || field === 'year') {
-      processedValue = editValue === '' ? null : parseInt(editValue, 10);
+      processedValue = valueToUse === '' ? null : parseInt(valueToUse, 10);
       if (isNaN(processedValue)) {
         processedValue = null;
       }
     } else if (field === 'location') {
       // For location, we need to use a special API endpoint with locationId
       try {
-        console.log('Saving location:', { trackId, editValue, locationId: editValue === '' || editValue === 'none' ? null : editValue });
         await apiRequest('PATCH', `/api/tracks/${trackId}/location`, {
-          locationId: editValue === '' || editValue === 'none' ? null : editValue
+          locationId: valueToUse === '' || valueToUse === 'none' ? null : valueToUse
         });
         
         // Invalidate specific queries to refetch the data with updated location
@@ -569,13 +569,10 @@ export function TrackTable({
     // For location field, convert location name to ID for the dropdown
     if (field === 'location') {
       const track = tracks.find(t => t.id === trackId);
-      console.log('Starting edit for location:', { trackId, track: track?.location, currentValue });
       if (track?.location) {
         const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || '';
-        console.log('Found locationId:', locationId, 'for location name:', track.location.name);
         setEditValue(locationId);
       } else {
-        console.log('No location found, setting empty');
         setEditValue('');
       }
     } else {
@@ -743,10 +740,10 @@ export function TrackTable({
                             <Select 
                               value={editValue || 'none'} 
                               onValueChange={(value) => {
-                                console.log('Location dropdown changed:', { value, willSetEditValue: value === 'none' ? '' : value });
-                                setEditValue(value === 'none' ? '' : value);
-                                // Auto-save location changes
-                                setTimeout(saveEdit, 0);
+                                const newValue = value === 'none' ? '' : value;
+                                setEditValue(newValue);
+                                // Auto-save location changes with the new value directly
+                                setTimeout(() => saveEdit(newValue), 0);
                               }}
                             >
                               <SelectTrigger className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1 w-full">
