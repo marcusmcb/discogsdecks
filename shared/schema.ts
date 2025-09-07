@@ -32,6 +32,7 @@ export const tracks = pgTable("tracks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   releaseId: varchar("release_id").notNull(),
   userId: varchar("user_id").notNull(),
+  locationId: varchar("location_id"), // Optional reference to location
   position: text("position"),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
@@ -47,6 +48,14 @@ export const crates = pgTable("crates", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const locations = pgTable("locations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull(),
+  name: text("name").notNull(),
+  color: text("color"), // Optional hex color code
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 export const crateTracks = pgTable("crate_tracks", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   crateId: varchar("crate_id").notNull(),
@@ -58,6 +67,7 @@ export const usersRelations = relations(users, ({ many }) => ({
   releases: many(releases),
   tracks: many(tracks),
   crates: many(crates),
+  locations: many(locations),
 }));
 
 export const releasesRelations = relations(releases, ({ one, many }) => ({
@@ -77,6 +87,10 @@ export const tracksRelations = relations(tracks, ({ one, many }) => ({
     fields: [tracks.releaseId],
     references: [releases.id],
   }),
+  location: one(locations, {
+    fields: [tracks.locationId],
+    references: [locations.id],
+  }),
   crateTracks: many(crateTracks),
 }));
 
@@ -86,6 +100,14 @@ export const cratesRelations = relations(crates, ({ one, many }) => ({
     references: [users.id],
   }),
   crateTracks: many(crateTracks),
+}));
+
+export const locationsRelations = relations(locations, ({ one, many }) => ({
+  user: one(users, {
+    fields: [locations.userId],
+    references: [users.id],
+  }),
+  tracks: many(tracks),
 }));
 
 export const crateTracksRelations = relations(crateTracks, ({ one }) => ({
@@ -119,6 +141,11 @@ export const insertCrateSchema = createInsertSchema(crates).omit({
   createdAt: true,
 });
 
+export const insertLocationSchema = createInsertSchema(locations).omit({
+  id: true,
+  createdAt: true,
+});
+
 export const insertCrateTrackSchema = createInsertSchema(crateTracks).omit({
   id: true,
   addedAt: true,
@@ -132,5 +159,7 @@ export type InsertTrack = z.infer<typeof insertTrackSchema>;
 export type Track = typeof tracks.$inferSelect;
 export type InsertCrate = z.infer<typeof insertCrateSchema>;
 export type Crate = typeof crates.$inferSelect;
+export type InsertLocation = z.infer<typeof insertLocationSchema>;
+export type Location = typeof locations.$inferSelect;
 export type InsertCrateTrack = z.infer<typeof insertCrateTrackSchema>;
 export type CrateTrack = typeof crateTracks.$inferSelect;
