@@ -466,17 +466,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // Parse pagination parameters
+      // Parse search and filter parameters
+      const search = req.query.search as string;
+      const yearFrom = req.query.yearFrom as string;
+      const yearTo = req.query.yearTo as string;
+      const genre = req.query.genre as string;
+      const format = req.query.format as string;
+      const sortBy = req.query.sortBy as string || 'addedAt';
+      const sortOrder = req.query.sortOrder as string || 'asc';
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 50;
       const offset = (page - 1) * limit;
       
-      const allTracks = await storage.getCrateTracks(crateId);
-      const total = allTracks.length;
-      const totalPages = Math.ceil(total / limit);
+      const filters = {
+        search,
+        yearFrom,
+        yearTo,
+        genre,
+        format,
+        sortBy,
+        sortOrder,
+        limit,
+        offset
+      };
       
-      // Apply pagination
-      const tracks = allTracks.slice(offset, offset + limit);
+      const { tracks, total } = await storage.getCrateTracks(crateId, filters);
+      const totalPages = Math.ceil(total / limit);
       
       res.json({ 
         tracks, 

@@ -1,6 +1,18 @@
 import { users, releases, tracks, crates, crateTracks, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ilike, or, desc, asc, sql, count, isNotNull } from "drizzle-orm";
+import { eq, and, ilike, or, desc, asc, sql, count, isNotNull, gte, lte } from "drizzle-orm";
+
+interface TrackFilters {
+  search?: string;
+  yearFrom?: string;
+  yearTo?: string;  
+  genre?: string;
+  format?: string;
+  sortBy?: string;
+  sortOrder?: string;
+  limit?: number;
+  offset?: number;
+}
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -41,7 +53,7 @@ export interface IStorage {
   deleteCrate(id: string): Promise<void>;
   addTrackToCrate(crateId: string, trackId: string): Promise<CrateTrack>;
   removeTrackFromCrate(crateId: string, trackId: string): Promise<void>;
-  getCrateTracks(crateId: string): Promise<Track[]>;
+  getCrateTracks(crateId: string, filters?: TrackFilters): Promise<{ tracks: Track[], total: number }>;
   isTrackInCrate(crateId: string, trackId: string): Promise<boolean>;
 }
 
@@ -305,8 +317,92 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(crateTracks.crateId, crateId), eq(crateTracks.trackId, trackId)));
   }
 
-  async getCrateTracks(crateId: string): Promise<Track[]> {
-    const results = await db
+  async getCrateTracks(crateId: string, filters?: TrackFilters): Promise<{ tracks: Track[], total: number }> {
+    // Build WHERE conditions
+    const whereConditions = [eq(crateTracks.crateId, crateId)];
+
+    // Add search filter
+    if (filters?.search) {
+      const searchTerm = `%${filters.search.toLowerCase()}%`;
+      whereConditions.push(
+        or(
+          ilike(tracks.artist, searchTerm),
+          ilike(tracks.title, searchTerm),
+          ilike(releases.title, searchTerm)
+        )!
+      );
+    }
+
+    // Add year filters
+    if (filters?.yearFrom) {
+      whereConditions.push(gte(releases.year, parseInt(filters.yearFrom)));
+    }
+    if (filters?.yearTo) {
+      whereConditions.push(lte(releases.year, parseInt(filters.yearTo)));
+    }
+
+    // Add genre filter
+    if (filters?.genre) {
+      whereConditions.push(eq(releases.genre, filters.genre));
+    }
+
+    // Add format filter  
+    if (filters?.format) {
+      whereConditions.push(eq(releases.format, filters.format));
+    }
+
+    // Build the combined WHERE condition
+    const whereCondition = whereConditions.length > 1 ? and(...whereConditions) : whereConditions[0];
+
+    // Get total count
+    const [{ count: total }] = await db
+      .select({ count: count() })
+      .from(crateTracks)
+      .innerJoin(tracks, eq(crateTracks.trackId, tracks.id))
+      .innerJoin(releases, eq(tracks.releaseId, releases.id))
+      .where(whereCondition);
+
+    // Add sorting
+    let orderByClause;
+    const sortBy = filters?.sortBy || 'addedAt';
+    const sortOrder = filters?.sortOrder || 'asc';
+    
+    switch (sortBy) {
+      case 'artist':
+        orderByClause = sortOrder === 'desc' ? desc(tracks.artist) : asc(tracks.artist);
+        break;
+      case 'title':
+        orderByClause = sortOrder === 'desc' ? desc(tracks.title) : asc(tracks.title);
+        break;
+      case 'release':
+        orderByClause = sortOrder === 'desc' ? desc(releases.title) : asc(releases.title);
+        break;
+      case 'year':
+        orderByClause = sortOrder === 'desc' ? desc(releases.year) : asc(releases.year);
+        break;
+      case 'genre':
+        orderByClause = sortOrder === 'desc' ? desc(releases.genre) : asc(releases.genre);
+        break;
+      case 'format':
+        orderByClause = sortOrder === 'desc' ? desc(releases.format) : asc(releases.format);
+        break;
+      case 'duration':
+        orderByClause = sortOrder === 'desc' ? desc(tracks.duration) : asc(tracks.duration);
+        break;
+      case 'bpm':
+        orderByClause = sortOrder === 'desc' ? desc(tracks.bpm) : asc(tracks.bpm);
+        break;
+      case 'position':
+        orderByClause = sortOrder === 'desc' ? desc(tracks.position) : asc(tracks.position);
+        break;
+      case 'addedAt':
+      default:
+        orderByClause = sortOrder === 'desc' ? desc(crateTracks.addedAt) : asc(crateTracks.addedAt);
+        break;
+    }
+
+    // Build main query with all conditions  
+    const queryBuilder = db
       .select({
         id: tracks.id,
         releaseId: tracks.releaseId,
@@ -325,11 +421,18 @@ export class DatabaseStorage implements IStorage {
       .from(crateTracks)
       .innerJoin(tracks, eq(crateTracks.trackId, tracks.id))
       .innerJoin(releases, eq(tracks.releaseId, releases.id))
-      .where(eq(crateTracks.crateId, crateId))
-      .orderBy(asc(crateTracks.addedAt));
+      .where(whereCondition)
+      .orderBy(orderByClause);
 
+    // Apply pagination if provided
+    const finalQuery = filters?.limit ? 
+      (filters?.offset ? queryBuilder.limit(filters.limit).offset(filters.offset) : queryBuilder.limit(filters.limit)) :
+      (filters?.offset ? queryBuilder.offset(filters.offset) : queryBuilder);
+
+    const results = await finalQuery;
+    
     // Transform results to include release data
-    return results.map(row => ({
+    const trackResults = results.map(row => ({
       ...row,
       release: {
         title: row.releaseTitle,
@@ -337,7 +440,9 @@ export class DatabaseStorage implements IStorage {
         genre: row.genre,
         format: row.format,
       }
-    })) as any;
+    }));
+
+    return { tracks: trackResults as any, total };
   }
 
   async isTrackInCrate(crateId: string, trackId: string): Promise<boolean> {
