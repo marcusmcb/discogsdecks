@@ -1,6 +1,6 @@
-import { users, releases, tracks, crates, crateTracks, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack } from "@shared/schema";
+import { users, releases, tracks, crates, crateTracks, locations, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack, type Location, type InsertLocation } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ilike, or, desc, asc, sql, count, isNotNull, gte, lte } from "drizzle-orm";
+import { eq, and, ilike, or, desc, asc, sql, count, isNotNull, gte, lte, inArray } from "drizzle-orm";
 
 interface TrackFilters {
   search?: string;
@@ -55,6 +55,16 @@ export interface IStorage {
   removeTrackFromCrate(crateId: string, trackId: string): Promise<void>;
   getCrateTracks(crateId: string, filters?: TrackFilters): Promise<{ tracks: Track[], total: number }>;
   isTrackInCrate(crateId: string, trackId: string): Promise<boolean>;
+  
+  // Location management
+  getUserLocations(userId: string): Promise<Location[]>;
+  createLocation(location: InsertLocation): Promise<Location>;
+  updateLocation(id: string, updates: Partial<Omit<Location, 'id' | 'userId' | 'createdAt'>>): Promise<Location>;
+  deleteLocation(id: string): Promise<void>;
+  getLocationByName(userId: string, name: string): Promise<Location | undefined>;
+  getMainLocation(userId: string): Promise<Location>;
+  updateTrackLocation(trackId: string, locationId: string | null): Promise<Track>;
+  bulkUpdateTracksLocation(trackIds: string[], locationId: string | null): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -183,6 +193,7 @@ export class DatabaseStorage implements IStorage {
         id: tracks.id,
         releaseId: tracks.releaseId,
         userId: tracks.userId,
+        locationId: tracks.locationId,
         position: tracks.position,
         title: tracks.title,
         artist: tracks.artist,
@@ -193,9 +204,12 @@ export class DatabaseStorage implements IStorage {
         year: releases.year,
         genre: releases.genre,
         format: releases.format,
+        locationName: locations.name,
+        locationColor: locations.color,
       })
       .from(tracks)
       .innerJoin(releases, eq(tracks.releaseId, releases.id))
+      .leftJoin(locations, eq(tracks.locationId, locations.id))
       .where(and(...whereConditions))
       .orderBy(orderByClause)
       .limit(filters?.limit || 50)
@@ -203,7 +217,7 @@ export class DatabaseStorage implements IStorage {
 
     const results = await queryBuilder;
     
-    // Transform results to include release data
+    // Transform results to include release and location data
     const trackResults = results.map(row => ({
       ...row,
       release: {
@@ -211,7 +225,11 @@ export class DatabaseStorage implements IStorage {
         year: row.year,
         genre: row.genre,
         format: row.format,
-      }
+      },
+      location: row.locationName ? {
+        name: row.locationName,
+        color: row.locationColor,
+      } : null
     }));
 
     return { tracks: trackResults as any, total };
@@ -407,6 +425,7 @@ export class DatabaseStorage implements IStorage {
         id: tracks.id,
         releaseId: tracks.releaseId,
         userId: tracks.userId,
+        locationId: tracks.locationId,
         position: tracks.position,
         title: tracks.title,
         artist: tracks.artist,
@@ -417,10 +436,13 @@ export class DatabaseStorage implements IStorage {
         year: releases.year,
         genre: releases.genre,
         format: releases.format,
+        locationName: locations.name,
+        locationColor: locations.color,
       })
       .from(crateTracks)
       .innerJoin(tracks, eq(crateTracks.trackId, tracks.id))
       .innerJoin(releases, eq(tracks.releaseId, releases.id))
+      .leftJoin(locations, eq(tracks.locationId, locations.id))
       .where(whereCondition)
       .orderBy(orderByClause);
 
@@ -431,7 +453,7 @@ export class DatabaseStorage implements IStorage {
 
     const results = await finalQuery;
     
-    // Transform results to include release data
+    // Transform results to include release and location data
     const trackResults = results.map(row => ({
       ...row,
       release: {
@@ -439,7 +461,11 @@ export class DatabaseStorage implements IStorage {
         year: row.year,
         genre: row.genre,
         format: row.format,
-      }
+      },
+      location: row.locationName ? {
+        name: row.locationName,
+        color: row.locationColor,
+      } : null
     }));
 
     return { tracks: trackResults as any, total };
@@ -452,6 +478,82 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(crateTracks.crateId, crateId), eq(crateTracks.trackId, trackId)));
     
     return (result[0]?.count || 0) > 0;
+  }
+
+  // Location management methods
+  async getUserLocations(userId: string): Promise<Location[]> {
+    return await db.select().from(locations).where(eq(locations.userId, userId)).orderBy(asc(locations.name));
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    const [newLocation] = await db
+      .insert(locations)
+      .values(location)
+      .returning();
+    return newLocation;
+  }
+
+  async updateLocation(id: string, updates: Partial<Omit<Location, 'id' | 'userId' | 'createdAt'>>): Promise<Location> {
+    const [updatedLocation] = await db
+      .update(locations)
+      .set(updates)
+      .where(eq(locations.id, id))
+      .returning();
+    return updatedLocation;
+  }
+
+  async deleteLocation(id: string): Promise<void> {
+    // First, set all tracks in this location to null (no location)
+    await db
+      .update(tracks)
+      .set({ locationId: null })
+      .where(eq(tracks.locationId, id));
+    
+    // Then delete the location
+    await db.delete(locations).where(eq(locations.id, id));
+  }
+
+  async getLocationByName(userId: string, name: string): Promise<Location | undefined> {
+    const [location] = await db
+      .select()
+      .from(locations)
+      .where(and(eq(locations.userId, userId), eq(locations.name, name)));
+    return location || undefined;
+  }
+
+  async getMainLocation(userId: string): Promise<Location> {
+    // Try to find existing "Main" location
+    let mainLocation = await this.getLocationByName(userId, "Main");
+    
+    // If no "Main" location exists, create it
+    if (!mainLocation) {
+      mainLocation = await this.createLocation({
+        userId,
+        name: "Main",
+        color: null
+      });
+    }
+    
+    return mainLocation;
+  }
+
+  async updateTrackLocation(trackId: string, locationId: string | null): Promise<Track> {
+    const [updatedTrack] = await db
+      .update(tracks)
+      .set({ locationId })
+      .where(eq(tracks.id, trackId))
+      .returning();
+    return updatedTrack;
+  }
+
+  async bulkUpdateTracksLocation(trackIds: string[], locationId: string | null): Promise<void> {
+    // Update multiple tracks at once using IN clause
+    if (trackIds.length > 0) {
+      await db
+        .update(tracks)
+        .set({ locationId })
+        .where(inArray(tracks.id, trackIds));
+    }
   }
 }
 
