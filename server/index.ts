@@ -23,6 +23,13 @@ app.use((req, res, next) => {
   const path = req.path;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
+  // Debug bulk-location requests specifically
+  if (path === '/api/tracks/bulk-location' && req.method === 'PATCH') {
+    console.log('🚨 MIDDLEWARE: Bulk location request detected!');
+    console.log('🚨 MIDDLEWARE: Method:', req.method, 'Path:', path);
+    console.log('🚨 MIDDLEWARE: Request body:', req.body);
+  }
+
   const originalResJson = res.json;
   res.json = function (bodyJson, ...args) {
     capturedJsonResponse = bodyJson;
