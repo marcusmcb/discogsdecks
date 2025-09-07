@@ -1,4 +1,5 @@
 import { Headphones, Disc, Download, Search, Plus, FolderOpen, Folder, Edit2, Trash2 } from "lucide-react";
+import { LocationManager } from "./location-manager";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -316,6 +317,9 @@ export function Sidebar({
             )}
           </div>
         </div>
+        
+        {/* Locations */}
+        <LocationManager />
         
         {/* Filter Panel */}
         <div className="space-y-4">
