@@ -59,21 +59,23 @@ export default function Home() {
 
   return (
     <div className="flex h-screen bg-background text-foreground">
-      <Sidebar
-        searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
-        filters={filters}
-        onFiltersChange={setFilters}
-        stats={stats}
-        onImport={handleImport}
-        connected={stats?.connected || false}
-        selectedCrate={selectedCrate}
-        onSelectCrate={setSelectedCrate}
-        onTrackDrop={handleTrackDrop}
-        data-testid="sidebar"
-      />
+      <div className="flex-shrink-0">
+        <Sidebar
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          filters={filters}
+          onFiltersChange={setFilters}
+          stats={stats}
+          onImport={handleImport}
+          connected={stats?.connected || false}
+          selectedCrate={selectedCrate}
+          onSelectCrate={setSelectedCrate}
+          onTrackDrop={handleTrackDrop}
+          data-testid="sidebar"
+        />
+      </div>
       
-      <div className="flex-1">
+      <div className="flex-1 min-w-0">
         <TrackTable
           searchQuery={searchQuery}
           filters={filters}

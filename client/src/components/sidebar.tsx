@@ -136,7 +136,7 @@ export function Sidebar({
   const crates = cratesData?.crates || [];
   const genres = genresData?.genres || [];
   return (
-    <div className="w-80 bg-card border-r border-border flex flex-col" data-testid="sidebar-container">
+    <div className="w-80 min-w-80 max-w-80 bg-card border-r border-border flex flex-col overflow-hidden" data-testid="sidebar-container">
       {/* Header */}
       <div className="p-6 border-b border-border">
         <div className="flex items-center space-x-3 mb-6">
