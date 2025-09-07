@@ -365,13 +365,31 @@ export function TrackTable({
     },
     onSuccess: () => {
       console.log('Frontend: Bulk location update successful, invalidating queries');
-      // Invalidate all relevant queries to ensure UI updates everywhere
+      
+      // More aggressive cache invalidation
       queryClient.invalidateQueries({ 
         predicate: (query) => {
           const key = query.queryKey[0] as string;
           return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
         }
       });
+      
+      // Also specifically invalidate the current crate's tracks query
+      if (selectedCrate && selectedCrate !== 'main') {
+        queryClient.invalidateQueries({ queryKey: [`/api/crates/${selectedCrate}/tracks`] });
+      }
+      
+      // Force a refetch after a short delay to ensure database changes propagate
+      setTimeout(() => {
+        console.log('Frontend: Force refreshing queries after delay');
+        queryClient.refetchQueries({
+          predicate: (query) => {
+            const key = query.queryKey[0] as string;
+            return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+          }
+        });
+      }, 500);
+      
       setBulkLocationId(''); // Reset the bulk location selector
     },
   });
