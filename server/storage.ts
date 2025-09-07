@@ -549,10 +549,19 @@ export class DatabaseStorage implements IStorage {
   async bulkUpdateTracksLocation(trackIds: string[], locationId: string | null, userId: string): Promise<void> {
     // Update multiple tracks at once using IN clause, but only for tracks owned by the user
     if (trackIds.length > 0) {
-      await db
+      console.log(`Bulk updating ${trackIds.length} tracks for user ${userId} with locationId: ${locationId}`);
+      console.log('Track IDs:', trackIds.slice(0, 5)); // Log first 5 track IDs for debugging
+      
+      const result = await db
         .update(tracks)
         .set({ locationId })
-        .where(and(inArray(tracks.id, trackIds), eq(tracks.userId, userId)));
+        .where(and(inArray(tracks.id, trackIds), eq(tracks.userId, userId)))
+        .returning({ id: tracks.id, locationId: tracks.locationId });
+      
+      console.log(`Successfully updated ${result.length} tracks`);
+      if (result.length > 0) {
+        console.log('Sample updated track:', result[0]);
+      }
     }
   }
 }

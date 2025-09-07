@@ -354,9 +354,13 @@ export function TrackTable({
   // Bulk location update mutation
   const bulkLocationUpdateMutation = useMutation({
     mutationFn: async ({ trackIds, locationId }: { trackIds: string[]; locationId: string | null }) => {
-      return apiRequest('PATCH', '/api/tracks/bulk-location', { trackIds, locationId });
+      console.log('Frontend: Sending bulk location update request', { trackIds: trackIds.slice(0, 5), locationId });
+      const response = await apiRequest('PATCH', '/api/tracks/bulk-location', { trackIds, locationId });
+      console.log('Frontend: Bulk location update response', response);
+      return response;
     },
     onSuccess: () => {
+      console.log('Frontend: Bulk location update successful, invalidating queries');
       // Invalidate all relevant queries to ensure UI updates everywhere
       queryClient.invalidateQueries({ 
         predicate: (query) => {
