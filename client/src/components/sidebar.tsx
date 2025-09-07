@@ -74,6 +74,11 @@ export function Sidebar({
     queryKey: ['/api/crates'],
   });
   
+  // Fetch genres
+  const { data: genresData } = useQuery<{ genres: string[] }>({
+    queryKey: ['/api/genres'],
+  });
+  
   // Create crate mutation
   const createCrateMutation = useMutation({
     mutationFn: async (name: string) => {
@@ -129,6 +134,7 @@ export function Sidebar({
   };
   
   const crates = cratesData?.crates || [];
+  const genres = genresData?.genres || [];
   return (
     <div className="w-80 bg-card border-r border-border flex flex-col" data-testid="sidebar-container">
       {/* Header */}
@@ -347,10 +353,11 @@ export function Sidebar({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Genres</SelectItem>
-                <SelectItem value="Electronic">Electronic</SelectItem>
-                <SelectItem value="House">House</SelectItem>
-                <SelectItem value="Techno">Techno</SelectItem>
-                <SelectItem value="Drum & Bass">Drum & Bass</SelectItem>
+                {genres.map((genre) => (
+                  <SelectItem key={genre} value={genre}>
+                    {genre}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

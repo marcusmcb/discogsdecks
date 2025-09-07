@@ -490,6 +490,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get unique genres from user's collection
+  app.get("/api/genres", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.json({ genres: [] });
+      }
+      
+      const genres = await storage.getUserGenres(user.id);
+      res.json({ genres });
+    } catch (error) {
+      console.error('Get genres error:', error);
+      res.status(500).json({ message: "Failed to fetch genres" });
+    }
+  });
+
   // Get library stats
   app.get("/api/stats", async (req, res) => {
     try {

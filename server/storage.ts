@@ -1,6 +1,6 @@
 import { users, releases, tracks, crates, crateTracks, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, ilike, or, desc, asc, sql, count } from "drizzle-orm";
+import { eq, and, ilike, or, desc, asc, sql, count, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -30,6 +30,9 @@ export interface IStorage {
   getTracksByReleaseId(releaseId: string): Promise<Track[]>;
   deleteUserTracks(userId: string): Promise<void>;
   deleteUserReleases(userId: string): Promise<void>;
+  
+  // Genre management
+  getUserGenres(userId: string): Promise<string[]>;
   
   // Crate management
   getUserCrates(userId: string): Promise<Crate[]>;
@@ -238,6 +241,16 @@ export class DatabaseStorage implements IStorage {
       .where(eq(releases.id, id))
       .returning();
     return updatedRelease;
+  }
+
+  async getUserGenres(userId: string): Promise<string[]> {
+    const results = await db
+      .selectDistinct({ genre: releases.genre })
+      .from(releases)
+      .where(and(eq(releases.userId, userId), isNotNull(releases.genre)))
+      .orderBy(asc(releases.genre));
+    
+    return results.map(r => r.genre!).filter(Boolean);
   }
 
   async getUserCrates(userId: string): Promise<Crate[]> {
