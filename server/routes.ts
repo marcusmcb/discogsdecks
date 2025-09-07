@@ -244,8 +244,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk update tracks location (MUST come before any parameterized track routes)
+  console.log('📝 REGISTERING bulk-location route at line 250');
   app.patch("/api/tracks/bulk-location", async (req, res) => {
-    console.log('🔥 BULK ROUTE HIT! This should appear in logs');
+    console.log('🔥🔥🔥 BULK ROUTE DEFINITELY HIT! 🔥🔥🔥');
+    console.log('🚀 REQUEST REACHED OUR HANDLER AT LINE 250! 🚀');
     try {
       console.log('ROUTE: Bulk location update request received');
       console.log('ROUTE: Request body:', req.body);
