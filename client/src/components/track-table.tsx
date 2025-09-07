@@ -220,15 +220,104 @@ export function TrackTable({
     mutationFn: async ({ trackId, updates }: { trackId: string; updates: any }) => {
       return apiRequest('PATCH', `/api/tracks/${trackId}`, updates);
     },
-    onSuccess: () => {
-      // Invalidate and refetch tracks in main collection
-      queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+    onSuccess: (_, { trackId, updates }) => {
+      // Update the current query cache data locally to maintain sort order position
+      const currentQueryKey = [
+        apiEndpoint,
+        searchQuery,
+        filters.yearFrom,
+        filters.yearTo,
+        filters.genre,
+        filters.format,
+        filters.sortBy,
+        filters.sortOrder,
+        currentPage,
+        pageSize,
+        selectedCrate,
+      ];
       
-      // Invalidate all crate track queries (since the track might be in multiple crates)
-      queryClient.invalidateQueries({ 
+      // Update the current view's cache
+      queryClient.setQueryData(currentQueryKey, (oldData: any) => {
+        if (!oldData?.tracks) return oldData;
+        
+        return {
+          ...oldData,
+          tracks: oldData.tracks.map((track: any) => {
+            if (track.id === trackId) {
+              // Create updated track object, handling both track and release updates
+              const updatedTrack = { ...track };
+              
+              // Update track fields
+              Object.keys(updates).forEach(key => {
+                if (['artist', 'title', 'duration', 'bpm', 'position'].includes(key)) {
+                  updatedTrack[key] = updates[key];
+                }
+                // Update release fields  
+                if (['year', 'genre', 'format'].includes(key)) {
+                  updatedTrack.release = {
+                    ...updatedTrack.release,
+                    [key]: updates[key]
+                  };
+                }
+                // Handle release title updates
+                if (key === 'release') {
+                  updatedTrack.release = {
+                    ...updatedTrack.release,
+                    title: updates[key]
+                  };
+                }
+              });
+              
+              return updatedTrack;
+            }
+            return track;
+          })
+        };
+      });
+      
+      // Also update any other crate views that might have this track visible
+      // but don't invalidate them (which would cause refetching)
+      queryClient.getQueryCache().findAll({
         predicate: (query) => {
           const queryKey = query.queryKey[0]?.toString();
           return !!(queryKey && queryKey.startsWith('/api/crates/') && queryKey.endsWith('/tracks'));
+        }
+      }).forEach((query) => {
+        if (query.state.data && JSON.stringify(query.queryKey) !== JSON.stringify(currentQueryKey)) {
+          queryClient.setQueryData(query.queryKey, (oldData: any) => {
+            if (!oldData?.tracks) return oldData;
+            
+            const hasTrack = oldData.tracks.some((track: any) => track.id === trackId);
+            if (!hasTrack) return oldData;
+            
+            return {
+              ...oldData,
+              tracks: oldData.tracks.map((track: any) => {
+                if (track.id === trackId) {
+                  const updatedTrack = { ...track };
+                  Object.keys(updates).forEach(key => {
+                    if (['artist', 'title', 'duration', 'bpm', 'position'].includes(key)) {
+                      updatedTrack[key] = updates[key];
+                    }
+                    if (['year', 'genre', 'format'].includes(key)) {
+                      updatedTrack.release = {
+                        ...updatedTrack.release,
+                        [key]: updates[key]
+                      };
+                    }
+                    if (key === 'release') {
+                      updatedTrack.release = {
+                        ...updatedTrack.release,
+                        title: updates[key]
+                      };
+                    }
+                  });
+                  return updatedTrack;
+                }
+                return track;
+              })
+            };
+          });
         }
       });
     },
