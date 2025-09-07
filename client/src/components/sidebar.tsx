@@ -203,7 +203,7 @@ export function Sidebar({
             {/* Main/All Tracks Crate */}
             <div
               className={cn(
-                "flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors",
+                "flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors min-w-0",
                 selectedCrate === 'main' || selectedCrate === null
                   ? "bg-primary text-primary-foreground"
                   : "hover:bg-accent"
@@ -211,9 +211,9 @@ export function Sidebar({
               onClick={() => onSelectCrate('main')}
               data-testid="crate-main"
             >
-              <FolderOpen className="h-4 w-4" />
-              <span className="text-sm font-medium">All Tracks</span>
-              <span className="text-xs text-muted-foreground ml-auto">
+              <FolderOpen className="h-4 w-4 flex-shrink-0" />
+              <span className="text-sm font-medium flex-1 truncate">All Tracks</span>
+              <span className="text-xs text-muted-foreground flex-shrink-0">
                 {stats?.totalTracks || 0}
               </span>
             </div>
@@ -223,7 +223,7 @@ export function Sidebar({
               <div
                 key={crate.id}
                 className={cn(
-                  "flex items-center space-x-2 p-2 rounded transition-colors group",
+                  "flex items-center space-x-2 p-2 rounded transition-colors group min-w-0",
                   selectedCrate === crate.id
                     ? "bg-primary text-primary-foreground"
                     : "hover:bg-accent cursor-pointer"
@@ -240,7 +240,7 @@ export function Sidebar({
                 }}
                 data-testid={`crate-${crate.id}`}
               >
-                <Folder className="h-4 w-4" />
+                <Folder className="h-4 w-4 flex-shrink-0" />
                 {editingCrate === crate.id ? (
                   <Input
                     value={editCrateName}
@@ -253,13 +253,13 @@ export function Sidebar({
                         setEditCrateName('');
                       }
                     }}
-                    className="text-sm h-6 border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
+                    className="text-sm h-6 border-0 shadow-none focus:ring-1 focus:ring-primary p-1 flex-1 min-w-0"
                     autoFocus
                   />
                 ) : (
-                  <span className="text-sm flex-1 truncate">{crate.name}</span>
+                  <span className="text-sm flex-1 truncate min-w-0">{crate.name}</span>
                 )}
-                <div className="opacity-0 group-hover:opacity-100 flex space-x-1">
+                <div className="opacity-0 group-hover:opacity-100 flex space-x-1 flex-shrink-0">
                   <Button
                     size="sm"
                     variant="ghost"
