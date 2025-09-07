@@ -243,6 +243,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk update tracks location (MUST come before any parameterized track routes)
+  app.patch("/api/tracks/bulk-location", async (req, res) => {
+    console.log('🔥 BULK ROUTE HIT! This should appear in logs');
+    try {
+      console.log('ROUTE: Bulk location update request received');
+      console.log('ROUTE: Request body:', req.body);
+      
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        console.log('ROUTE: No authenticated user found');
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      console.log('ROUTE: Found authenticated user:', user.id);
+      
+      const bulkUpdateSchema = z.object({
+        trackIds: z.array(z.string()),
+        locationId: z.string().nullable(),
+      });
+      
+      const { trackIds, locationId } = bulkUpdateSchema.parse(req.body);
+      console.log(`ROUTE: Parsed data - ${trackIds.length} tracks, locationId: ${locationId}`);
+      console.log('ROUTE: About to call storage.bulkUpdateTracksLocation');
+      
+      await storage.bulkUpdateTracksLocation(trackIds, locationId, user.id);
+      console.log('ROUTE: Storage call completed successfully');
+      
+      res.json({ 
+        success: true, 
+        updated: trackIds.length,
+        source: "REAL_BULK_HANDLER",
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('ROUTE: Bulk update tracks location error:', error);
+      res.status(500).json({ message: "Failed to bulk update track locations" });
+    }
+  });
+
   // Update track
   app.patch("/api/tracks/:id", async (req, res) => {
     try {
@@ -662,46 +703,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk update tracks location (MUST come before parameterized route)
-  app.patch("/api/tracks/bulk-location", async (req, res) => {
-    console.log('🔥 BULK ROUTE HIT! This should appear in logs');
-    try {
-      console.log('ROUTE: Bulk location update request received');
-      console.log('ROUTE: Request body:', req.body);
-      
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        console.log('ROUTE: No authenticated user found');
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-      
-      console.log('ROUTE: Found authenticated user:', user.id);
-      
-      const bulkUpdateSchema = z.object({
-        trackIds: z.array(z.string()),
-        locationId: z.string().nullable(),
-      });
-      
-      const { trackIds, locationId } = bulkUpdateSchema.parse(req.body);
-      console.log(`ROUTE: Parsed data - ${trackIds.length} tracks, locationId: ${locationId}`);
-      console.log('ROUTE: About to call storage.bulkUpdateTracksLocation');
-      
-      await storage.bulkUpdateTracksLocation(trackIds, locationId, user.id);
-      console.log('ROUTE: Storage call completed successfully');
-      
-      res.json({ 
-        success: true, 
-        updated: trackIds.length,
-        source: "REAL_BULK_HANDLER",
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      console.error('ROUTE: Bulk update tracks location error:', error);
-      res.status(500).json({ message: "Failed to bulk update track locations" });
-    }
-  });
 
   // Update individual track location
   app.patch("/api/tracks/:id/location", async (req, res) => {
