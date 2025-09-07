@@ -662,32 +662,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update individual track location
-  app.patch("/api/tracks/:id/location", async (req, res) => {
-    try {
-      const trackId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
-      
-      const updateTrackLocationSchema = z.object({
-        locationId: z.string().nullable(),
-      });
-      
-      const { locationId } = updateTrackLocationSchema.parse(req.body);
-      
-      const updatedTrack = await storage.updateTrackLocation(trackId, locationId);
-      res.json({ track: updatedTrack });
-    } catch (error) {
-      console.error('Update track location error:', error);
-      res.status(500).json({ message: "Failed to update track location" });
-    }
-  });
-
-  // Bulk update tracks location
+  // Bulk update tracks location (MUST come before parameterized route)
   app.patch("/api/tracks/bulk-location", async (req, res) => {
     try {
       console.log('ROUTE: Bulk location update request received');
@@ -719,6 +694,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('ROUTE: Bulk update tracks location error:', error);
       res.status(500).json({ message: "Failed to bulk update track locations" });
+    }
+  });
+
+  // Update individual track location
+  app.patch("/api/tracks/:id/location", async (req, res) => {
+    try {
+      const trackId = req.params.id;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const updateTrackLocationSchema = z.object({
+        locationId: z.string().nullable(),
+      });
+      
+      const { locationId } = updateTrackLocationSchema.parse(req.body);
+      
+      const updatedTrack = await storage.updateTrackLocation(trackId, locationId);
+      res.json({ track: updatedTrack });
+    } catch (error) {
+      console.error('Update track location error:', error);
+      res.status(500).json({ message: "Failed to update track location" });
     }
   });
 
