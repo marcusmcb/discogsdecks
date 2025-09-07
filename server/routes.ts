@@ -314,6 +314,161 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Crate management endpoints
+  
+  // Get user's crates
+  app.get("/api/crates", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.json({ crates: [] });
+      }
+      
+      const crates = await storage.getUserCrates(user.id);
+      res.json({ crates });
+    } catch (error) {
+      console.error('Get crates error:', error);
+      res.status(500).json({ message: "Failed to fetch crates" });
+    }
+  });
+
+  // Create new crate
+  app.post("/api/crates", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const createSchema = z.object({
+        name: z.string().min(1, "Crate name is required"),
+      });
+      
+      const { name } = createSchema.parse(req.body);
+      
+      const newCrate = await storage.createCrate({
+        userId: user.id,
+        name,
+      });
+      
+      res.json({ crate: newCrate });
+    } catch (error) {
+      console.error('Create crate error:', error);
+      res.status(500).json({ message: "Failed to create crate" });
+    }
+  });
+
+  // Update crate (rename)
+  app.patch("/api/crates/:id", async (req, res) => {
+    try {
+      const crateId = req.params.id;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const updateSchema = z.object({
+        name: z.string().min(1, "Crate name is required"),
+      });
+      
+      const updates = updateSchema.parse(req.body);
+      const updatedCrate = await storage.updateCrate(crateId, updates);
+      
+      res.json({ crate: updatedCrate });
+    } catch (error) {
+      console.error('Update crate error:', error);
+      res.status(500).json({ message: "Failed to update crate" });
+    }
+  });
+
+  // Delete crate
+  app.delete("/api/crates/:id", async (req, res) => {
+    try {
+      const crateId = req.params.id;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      await storage.deleteCrate(crateId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete crate error:', error);
+      res.status(500).json({ message: "Failed to delete crate" });
+    }
+  });
+
+  // Add track to crate
+  app.post("/api/crates/:id/tracks", async (req, res) => {
+    try {
+      const crateId = req.params.id;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      const addTrackSchema = z.object({
+        trackId: z.string(),
+      });
+      
+      const { trackId } = addTrackSchema.parse(req.body);
+      const crateTrack = await storage.addTrackToCrate(crateId, trackId);
+      
+      res.json({ crateTrack });
+    } catch (error) {
+      console.error('Add track to crate error:', error);
+      res.status(500).json({ message: "Failed to add track to crate" });
+    }
+  });
+
+  // Remove track from crate
+  app.delete("/api/crates/:id/tracks/:trackId", async (req, res) => {
+    try {
+      const { id: crateId, trackId } = req.params;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      
+      await storage.removeTrackFromCrate(crateId, trackId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Remove track from crate error:', error);
+      res.status(500).json({ message: "Failed to remove track from crate" });
+    }
+  });
+
+  // Get tracks in a crate
+  app.get("/api/crates/:id/tracks", async (req, res) => {
+    try {
+      const crateId = req.params.id;
+      const users = await storage.getAllUsers();
+      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      
+      if (!user) {
+        return res.json({ tracks: [] });
+      }
+      
+      const tracks = await storage.getCrateTracks(crateId);
+      res.json({ tracks, total: tracks.length });
+    } catch (error) {
+      console.error('Get crate tracks error:', error);
+      res.status(500).json({ message: "Failed to fetch crate tracks" });
+    }
+  });
+
   // Get library stats
   app.get("/api/stats", async (req, res) => {
     try {
