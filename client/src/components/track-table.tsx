@@ -95,7 +95,7 @@ export function TrackTable({
     {
       id: 'position',
       label: '#',
-      size: 4,
+      size: 3.77, // Normalized from 4 (4/106*100)
       minSize: 3,
       maxSize: 6,
       getValue: (_, index, currentPage) => String(index + 1 + (currentPage - 1) * pageSize).padStart(3, '0'),
@@ -105,7 +105,7 @@ export function TrackTable({
     {
       id: 'artist',
       label: 'Artist',
-      size: 19,
+      size: 17.92, // Normalized from 19 (19/106*100)
       minSize: 10,
       getValue: (track) => track.artist,
       className: 'font-medium truncate',
@@ -114,7 +114,7 @@ export function TrackTable({
     {
       id: 'title',
       label: 'Track Title',
-      size: 24,
+      size: 22.64, // Normalized from 24 (24/106*100)
       minSize: 15,
       getValue: (track) => track.title,
       className: 'truncate',
@@ -123,7 +123,7 @@ export function TrackTable({
     {
       id: 'release',
       label: 'Release',
-      size: 19,
+      size: 17.92, // Normalized from 19 (19/106*100)
       minSize: 10,
       getValue: (track) => track.release.title,
       className: 'text-muted-foreground truncate',
@@ -132,7 +132,7 @@ export function TrackTable({
     {
       id: 'year',
       label: 'Year',
-      size: 8,
+      size: 7.55, // Normalized from 8 (8/106*100)
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.release.year?.toString() || '—',
@@ -142,7 +142,7 @@ export function TrackTable({
     {
       id: 'genre',
       label: 'Genre',
-      size: 11,
+      size: 10.38, // Normalized from 11 (11/106*100)
       minSize: 8,
       maxSize: 16,
       getValue: (track) => track.release.genre || '—',
@@ -152,7 +152,7 @@ export function TrackTable({
     {
       id: 'format',
       label: 'Format',
-      size: 8,
+      size: 7.55, // Normalized from 8 (8/106*100)
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.release.format || '—',
@@ -162,7 +162,7 @@ export function TrackTable({
     {
       id: 'duration',
       label: 'Duration',
-      size: 7,
+      size: 6.60, // Normalized from 7 (7/106*100)
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.duration || '—',
@@ -172,7 +172,7 @@ export function TrackTable({
     {
       id: 'bpm',
       label: 'BPM',
-      size: 6,
+      size: 5.66, // Normalized from 6 (6/106*100)
       minSize: 5,
       maxSize: 10,
       getValue: (track) => track.bpm?.toString() || '',
@@ -293,7 +293,14 @@ export function TrackTable({
   }, [saveEdit, cancelEditing]);
 
   const handleColumnResize = useCallback((sizes: number[]) => {
-    setColumns(prev => prev.map((col, index) => ({ ...col, size: sizes[index] })));
+    // Ensure sizes add up to exactly 100% to prevent misalignment
+    const total = sizes.reduce((sum, size) => sum + size, 0);
+    const normalizedSizes = total > 0 ? sizes.map(size => (size / total) * 100) : sizes;
+    
+    setColumns(prev => prev.map((col, index) => ({ 
+      ...col, 
+      size: Math.round(normalizedSizes[index] * 100) / 100  // Round to 2 decimal places
+    })));
   }, []);
 
   const handleDragStart = useCallback((e: React.DragEvent, columnIndex: number) => {
