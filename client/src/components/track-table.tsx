@@ -605,6 +605,7 @@ export function TrackTable({
       console.log(`Frontend: Generated ${trackIds.length} track IDs:`, trackIds.slice(0, 10));
       const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
       
+      console.log('Frontend: About to call mutation with:', { trackIdsLength: trackIds.length, locationId });
       bulkLocationUpdateMutation.mutate({ trackIds, locationId });
     } catch (error) {
       console.error('Frontend: Error fetching all crate tracks for bulk update:', error);
