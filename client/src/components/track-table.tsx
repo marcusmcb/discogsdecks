@@ -587,7 +587,7 @@ export function TrackTable({
     const currentTracks = tracksData?.tracks || [];
     if (currentTracks.length === 0) return;
     
-    const trackIds = currentTracks.map(track => track.id);
+    const trackIds = currentTracks.map((track: Track) => track.id);
     const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
     
     bulkLocationUpdateMutation.mutate({ trackIds, locationId });
@@ -600,7 +600,7 @@ export function TrackTable({
     // For location field, convert location name to ID for the dropdown
     if (field === 'location') {
       const currentTracks = tracksData?.tracks || [];
-      const track = currentTracks.find(t => t.id === trackId);
+      const track = currentTracks.find((t: Track) => t.id === trackId);
       if (track?.location) {
         const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || '';
         setEditValue(locationId);

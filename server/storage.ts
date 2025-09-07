@@ -64,7 +64,7 @@ export interface IStorage {
   getLocationByName(userId: string, name: string): Promise<Location | undefined>;
   getMainLocation(userId: string): Promise<Location>;
   updateTrackLocation(trackId: string, locationId: string | null): Promise<Track>;
-  bulkUpdateTracksLocation(trackIds: string[], locationId: string | null): Promise<void>;
+  bulkUpdateTracksLocation(trackIds: string[], locationId: string | null, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -546,13 +546,13 @@ export class DatabaseStorage implements IStorage {
     return updatedTrack;
   }
 
-  async bulkUpdateTracksLocation(trackIds: string[], locationId: string | null): Promise<void> {
-    // Update multiple tracks at once using IN clause
+  async bulkUpdateTracksLocation(trackIds: string[], locationId: string | null, userId: string): Promise<void> {
+    // Update multiple tracks at once using IN clause, but only for tracks owned by the user
     if (trackIds.length > 0) {
       await db
         .update(tracks)
         .set({ locationId })
-        .where(inArray(tracks.id, trackIds));
+        .where(and(inArray(tracks.id, trackIds), eq(tracks.userId, userId)));
     }
   }
 }

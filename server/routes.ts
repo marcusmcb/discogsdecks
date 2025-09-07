@@ -704,7 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const { trackIds, locationId } = bulkUpdateSchema.parse(req.body);
       
-      await storage.bulkUpdateTracksLocation(trackIds, locationId);
+      await storage.bulkUpdateTracksLocation(trackIds, locationId, user.id);
       res.json({ success: true, updated: trackIds.length });
     } catch (error) {
       console.error('Bulk update tracks location error:', error);
