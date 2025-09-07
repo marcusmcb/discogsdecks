@@ -585,17 +585,29 @@ export function TrackTable({
   const totalPages = tracksData?.totalPages || 1;
 
   // Handle bulk location assignment
-  const handleBulkLocationAssignment = useCallback(() => {
-    if (!bulkLocationId) return;
+  const handleBulkLocationAssignment = useCallback(async () => {
+    if (!bulkLocationId || !selectedCrate || selectedCrate === 'main') return;
     
-    const currentTracks = tracksData?.tracks || [];
-    if (currentTracks.length === 0) return;
+    console.log('Frontend: Fetching all tracks in crate for bulk update');
     
-    const trackIds = currentTracks.map((track: Track) => track.id);
-    const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
-    
-    bulkLocationUpdateMutation.mutate({ trackIds, locationId });
-  }, [bulkLocationId, tracksData?.tracks, bulkLocationUpdateMutation]);
+    try {
+      // Fetch ALL tracks in the crate (without pagination) for bulk update
+      const response = await fetch(`/api/crates/${selectedCrate}/tracks?limit=10000`);
+      const data = await response.json();
+      const allTracks = data.tracks || [];
+      
+      console.log(`Frontend: Found ${allTracks.length} total tracks in crate for bulk update`);
+      
+      if (allTracks.length === 0) return;
+      
+      const trackIds = allTracks.map((track: Track) => track.id);
+      const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
+      
+      bulkLocationUpdateMutation.mutate({ trackIds, locationId });
+    } catch (error) {
+      console.error('Frontend: Error fetching all crate tracks for bulk update:', error);
+    }
+  }, [bulkLocationId, selectedCrate, bulkLocationUpdateMutation]);
 
   // Handle cell editing
   const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
