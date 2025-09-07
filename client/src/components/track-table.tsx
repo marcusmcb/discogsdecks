@@ -67,6 +67,7 @@ export function TrackTable({
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [pageSize, setPageSize] = useState(50);
+  const [bulkLocationId, setBulkLocationId] = useState<string>('');
 
   // Load saved page size from localStorage on mount
   useEffect(() => {
@@ -350,6 +351,23 @@ export function TrackTable({
     },
   });
 
+  // Bulk location update mutation
+  const bulkLocationUpdateMutation = useMutation({
+    mutationFn: async ({ trackIds, locationId }: { trackIds: string[]; locationId: string | null }) => {
+      return apiRequest('PATCH', '/api/tracks/bulk-location', { trackIds, locationId });
+    },
+    onSuccess: () => {
+      // Invalidate all relevant queries to ensure UI updates everywhere
+      queryClient.invalidateQueries({ 
+        predicate: (query) => {
+          const key = query.queryKey[0] as string;
+          return key.startsWith('/api/tracks') || key.startsWith('/api/crates');
+        }
+      });
+      setBulkLocationId(''); // Reset the bulk location selector
+    },
+  });
+
 
 
   const cancelEditing = useCallback(() => {
@@ -562,6 +580,16 @@ export function TrackTable({
   const total = tracksData?.total || 0;
   const totalPages = tracksData?.totalPages || 1;
 
+  // Handle bulk location assignment
+  const handleBulkLocationAssignment = useCallback(() => {
+    if (!bulkLocationId || tracks.length === 0) return;
+    
+    const trackIds = tracks.map(track => track.id);
+    const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
+    
+    bulkLocationUpdateMutation.mutate({ trackIds, locationId });
+  }, [bulkLocationId, tracks, bulkLocationUpdateMutation]);
+
   // Handle cell editing
   const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
     setEditingCell({ trackId, field });
@@ -594,6 +622,43 @@ export function TrackTable({
           </div>
           
           <div className="flex items-center space-x-3">
+            {/* Bulk Location Assignment - Only show for user-created crates */}
+            {selectedCrate && selectedCrate !== 'main' && tracks.length > 0 && (
+              <div className="flex items-center space-x-2 bg-secondary rounded-md p-2">
+                <span className="text-sm text-muted-foreground">Assign all to:</span>
+                <Select 
+                  value={bulkLocationId} 
+                  onValueChange={setBulkLocationId}
+                  data-testid="select-bulk-location"
+                >
+                  <SelectTrigger className="w-36 h-8 text-sm">
+                    <SelectValue placeholder="Select location" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No Location</SelectItem>
+                    {(locationsData?.locations || []).map((location) => (
+                      <SelectItem key={location.id} value={location.id}>
+                        <span style={{ color: location.color || 'inherit' }}>
+                          {location.name}
+                        </span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button
+                  size="sm"
+                  onClick={handleBulkLocationAssignment}
+                  disabled={!bulkLocationId || bulkLocationUpdateMutation.isPending}
+                  data-testid="button-bulk-assign-location"
+                >
+                  {bulkLocationUpdateMutation.isPending ? (
+                    <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin mr-1" />
+                  ) : null}
+                  Apply
+                </Button>
+              </div>
+            )}
+            
             {/* View Toggle */}
             <div className="flex bg-secondary rounded-md p-1">
               <Button
