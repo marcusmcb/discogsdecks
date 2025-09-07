@@ -37,6 +37,7 @@ interface TrackTableProps {
   onSelectTrack: (trackId: string) => void;
   currentPage: number;
   onPageChange: (page: number) => void;
+  selectedCrate: string | null;
 }
 
 interface ColumnConfig {
@@ -58,6 +59,7 @@ export function TrackTable({
   onSelectTrack,
   currentPage,
   onPageChange,
+  selectedCrate,
 }: TrackTableProps) {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [pageSize, setPageSize] = useState(50);
@@ -363,9 +365,14 @@ export function TrackTable({
       <ChevronDown className="h-3 w-3 ml-1" />;
   };
 
+  // Determine API endpoint based on selected crate
+  const apiEndpoint = selectedCrate && selectedCrate !== 'main' 
+    ? `/api/crates/${selectedCrate}/tracks`
+    : '/api/tracks';
+    
   const { data: tracksData, isLoading } = useQuery({
     queryKey: [
-      '/api/tracks',
+      apiEndpoint,
       searchQuery,
       filters.yearFrom,
       filters.yearTo,
@@ -375,9 +382,17 @@ export function TrackTable({
       filters.sortOrder,
       currentPage,
       pageSize,
+      selectedCrate,
     ],
     queryFn: ({ queryKey }) => {
-      const [, search, yearFrom, yearTo, genre, format, sortBy, sortOrder, page, limit] = queryKey;
+      const [endpoint, search, yearFrom, yearTo, genre, format, sortBy, sortOrder, page, limit] = queryKey;
+      
+      // For crate tracks, use simpler endpoint (no filtering yet)
+      if (endpoint !== '/api/tracks') {
+        return fetch(endpoint as string).then(res => res.json());
+      }
+      
+      // For main tracks, use full filtering
       const params = new URLSearchParams({
         ...(search && { search: search as string }),
         ...(yearFrom && { yearFrom: yearFrom as string }),
@@ -537,6 +552,11 @@ export function TrackTable({
                     selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
                   }`}
                   onClick={() => onSelectTrack(track.id)}
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('application/json', JSON.stringify([track.id]));
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
                   data-testid={`row-track-${track.id}`}
                 >
                   {columns.map((column) => {

@@ -1,8 +1,18 @@
-import { Headphones, Disc, Download, Search } from "lucide-react";
+import { Headphones, Disc, Download, Search, Plus, FolderOpen, Folder, Edit2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+
+interface Crate {
+  id: string;
+  name: string;
+  createdAt: string;
+}
 
 interface SidebarProps {
   searchQuery: string;
@@ -24,6 +34,9 @@ interface SidebarProps {
   };
   onImport: () => void;
   connected: boolean;
+  selectedCrate: string | null;
+  onSelectCrate: (crateId: string | null) => void;
+  onTrackDrop: (crateId: string, trackIds: string[]) => void;
 }
 
 export function Sidebar({
@@ -34,7 +47,77 @@ export function Sidebar({
   stats,
   onImport,
   connected,
+  selectedCrate,
+  onSelectCrate,
+  onTrackDrop,
 }: SidebarProps) {
+  const [isCreating, setIsCreating] = useState(false);
+  const [newCrateName, setNewCrateName] = useState('');
+  const [editingCrate, setEditingCrate] = useState<string | null>(null);
+  const [editCrateName, setEditCrateName] = useState('');
+  
+  const queryClient = useQueryClient();
+  
+  // Fetch crates
+  const { data: cratesData } = useQuery<{ crates: Crate[] }>({
+    queryKey: ['/api/crates'],
+  });
+  
+  // Create crate mutation
+  const createCrateMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return apiRequest('POST', '/api/crates', { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+      setIsCreating(false);
+      setNewCrateName('');
+    },
+  });
+  
+  // Update crate mutation
+  const updateCrateMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      return apiRequest('PATCH', `/api/crates/${id}`, { name });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+      setEditingCrate(null);
+      setEditCrateName('');
+    },
+  });
+  
+  // Delete crate mutation
+  const deleteCrateMutation = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/crates/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+      if (selectedCrate && selectedCrate !== 'main') {
+        onSelectCrate('main');
+      }
+    },
+  });
+  
+  const handleCreateCrate = () => {
+    if (newCrateName.trim()) {
+      createCrateMutation.mutate(newCrateName.trim());
+    }
+  };
+  
+  const handleUpdateCrate = (id: string) => {
+    if (editCrateName.trim()) {
+      updateCrateMutation.mutate({ id, name: editCrateName.trim() });
+    }
+  };
+  
+  const startEditing = (crate: Crate) => {
+    setEditingCrate(crate.id);
+    setEditCrateName(crate.name);
+  };
+  
+  const crates = cratesData?.crates || [];
   return (
     <div className="w-80 bg-card border-r border-border flex flex-col" data-testid="sidebar-container">
       {/* Header */}
@@ -82,6 +165,138 @@ export function Sidebar({
               onChange={(e) => onSearchChange(e.target.value)}
               data-testid="input-search"
             />
+          </div>
+        </div>
+        
+        {/* Crates */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Crates</h3>
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              onClick={() => setIsCreating(true)}
+              data-testid="button-create-crate"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          <div className="space-y-1">
+            {/* Main/All Tracks Crate */}
+            <div
+              className={cn(
+                "flex items-center space-x-2 p-2 rounded cursor-pointer transition-colors",
+                selectedCrate === 'main' || selectedCrate === null
+                  ? "bg-primary text-primary-foreground"
+                  : "hover:bg-accent"
+              )}
+              onClick={() => onSelectCrate('main')}
+              data-testid="crate-main"
+            >
+              <FolderOpen className="h-4 w-4" />
+              <span className="text-sm font-medium">All Tracks</span>
+              <span className="text-xs text-muted-foreground ml-auto">
+                {stats?.totalTracks || 0}
+              </span>
+            </div>
+            
+            {/* User Crates */}
+            {crates.map((crate) => (
+              <div
+                key={crate.id}
+                className={cn(
+                  "flex items-center space-x-2 p-2 rounded transition-colors group",
+                  selectedCrate === crate.id
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-accent cursor-pointer"
+                )}
+                onClick={() => selectedCrate !== crate.id && onSelectCrate(crate.id)}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const trackIds = JSON.parse(e.dataTransfer.getData('application/json'));
+                  onTrackDrop(crate.id, trackIds);
+                }}
+                data-testid={`crate-${crate.id}`}
+              >
+                <Folder className="h-4 w-4" />
+                {editingCrate === crate.id ? (
+                  <Input
+                    value={editCrateName}
+                    onChange={(e) => setEditCrateName(e.target.value)}
+                    onBlur={() => handleUpdateCrate(crate.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleUpdateCrate(crate.id);
+                      if (e.key === 'Escape') {
+                        setEditingCrate(null);
+                        setEditCrateName('');
+                      }
+                    }}
+                    className="text-sm h-6 border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
+                    autoFocus
+                  />
+                ) : (
+                  <span className="text-sm flex-1 truncate">{crate.name}</span>
+                )}
+                <div className="opacity-0 group-hover:opacity-100 flex space-x-1">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(crate);
+                    }}
+                  >
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-6 w-6 p-0"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteCrateMutation.mutate(crate.id);
+                    }}
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+            
+            {/* Create New Crate */}
+            {isCreating && (
+              <div className="flex items-center space-x-2 p-2 rounded bg-accent">
+                <Folder className="h-4 w-4" />
+                <Input
+                  value={newCrateName}
+                  onChange={(e) => setNewCrateName(e.target.value)}
+                  onBlur={() => {
+                    if (newCrateName.trim()) {
+                      handleCreateCrate();
+                    } else {
+                      setIsCreating(false);
+                      setNewCrateName('');
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateCrate();
+                    if (e.key === 'Escape') {
+                      setIsCreating(false);
+                      setNewCrateName('');
+                    }
+                  }}
+                  placeholder="New Crate"
+                  className="text-sm h-6 border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
         </div>
         

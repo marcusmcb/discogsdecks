@@ -3,13 +3,15 @@ import { Sidebar } from "@/components/sidebar";
 import { TrackTable } from "@/components/track-table";
 import { AuthModal } from "@/components/auth-modal";
 import { ImportModal } from "@/components/import-modal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCrate, setSelectedCrate] = useState<string | null>('main');
   const [filters, setFilters] = useState({
     yearFrom: "",
     yearTo: "",
@@ -19,6 +21,8 @@ export default function Home() {
     sortOrder: "asc" as const,
   });
   const [currentPage, setCurrentPage] = useState(1);
+  
+  const queryClient = useQueryClient();
 
   const { data: stats } = useQuery<{
     totalTracks: number;
@@ -36,6 +40,22 @@ export default function Home() {
       setShowImportModal(true);
     }
   };
+  
+  // Mutation for adding tracks to crates
+  const addTrackToCrateMutation = useMutation({
+    mutationFn: async ({ crateId, trackId }: { crateId: string; trackId: string }) => {
+      return apiRequest('POST', `/api/crates/${crateId}/tracks`, { trackId });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+    },
+  });
+  
+  const handleTrackDrop = (crateId: string, trackIds: string[]) => {
+    trackIds.forEach(trackId => {
+      addTrackToCrateMutation.mutate({ crateId, trackId });
+    });
+  };
 
   return (
     <div className="flex h-screen bg-background text-foreground">
@@ -47,6 +67,9 @@ export default function Home() {
         stats={stats}
         onImport={handleImport}
         connected={stats?.connected || false}
+        selectedCrate={selectedCrate}
+        onSelectCrate={setSelectedCrate}
+        onTrackDrop={handleTrackDrop}
         data-testid="sidebar"
       />
       
@@ -59,6 +82,7 @@ export default function Home() {
           onSelectTrack={setSelectedTrack}
           currentPage={currentPage}
           onPageChange={setCurrentPage}
+          selectedCrate={selectedCrate}
           data-testid="track-table"
         />
       </div>
