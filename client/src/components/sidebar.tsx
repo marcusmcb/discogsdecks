@@ -3,6 +3,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
@@ -55,6 +65,7 @@ export function Sidebar({
   const [newCrateName, setNewCrateName] = useState('');
   const [editingCrate, setEditingCrate] = useState<string | null>(null);
   const [editCrateName, setEditCrateName] = useState('');
+  const [deleteConfirmCrate, setDeleteConfirmCrate] = useState<{id: string, name: string} | null>(null);
   
   const queryClient = useQueryClient();
   
@@ -260,7 +271,7 @@ export function Sidebar({
                     className="h-6 w-6 p-0"
                     onClick={(e) => {
                       e.stopPropagation();
-                      deleteCrateMutation.mutate(crate.id);
+                      setDeleteConfirmCrate({ id: crate.id, name: crate.name });
                     }}
                   >
                     <Trash2 className="h-3 w-3" />
@@ -386,6 +397,32 @@ export function Sidebar({
           </div>
         </div>
       </div>
+      
+      {/* Delete Confirmation Modal */}
+      <AlertDialog open={!!deleteConfirmCrate} onOpenChange={(open) => !open && setDeleteConfirmCrate(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Crate</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete the crate "{deleteConfirmCrate?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (deleteConfirmCrate) {
+                  deleteCrateMutation.mutate(deleteConfirmCrate.id);
+                  setDeleteConfirmCrate(null);
+                }
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

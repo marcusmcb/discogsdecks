@@ -227,8 +227,8 @@ export function TrackTable({
       // Invalidate all crate track queries (since the track might be in multiple crates)
       queryClient.invalidateQueries({ 
         predicate: (query) => {
-          return query.queryKey[0]?.toString().startsWith('/api/crates/') && 
-                 query.queryKey[0]?.toString().endsWith('/tracks');
+          const queryKey = query.queryKey[0]?.toString();
+          return !!(queryKey && queryKey.startsWith('/api/crates/') && queryKey.endsWith('/tracks'));
         }
       });
     },
