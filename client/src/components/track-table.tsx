@@ -387,9 +387,13 @@ export function TrackTable({
     queryFn: ({ queryKey }) => {
       const [endpoint, search, yearFrom, yearTo, genre, format, sortBy, sortOrder, page, limit] = queryKey;
       
-      // For crate tracks, use simpler endpoint (no filtering yet)
+      // For crate tracks, use pagination but no filtering (yet)
       if (endpoint !== '/api/tracks') {
-        return fetch(endpoint as string).then(res => res.json());
+        const params = new URLSearchParams({
+          page: page?.toString() || '1',
+          limit: (limit as number)?.toString() || '50',
+        });
+        return fetch(`${endpoint as string}?${params}`).then(res => res.json());
       }
       
       // For main tracks, use full filtering

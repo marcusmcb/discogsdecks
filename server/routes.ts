@@ -458,11 +458,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
       
       if (!user) {
-        return res.json({ tracks: [] });
+        return res.json({ 
+          tracks: [],
+          total: 0,
+          page: 1,
+          totalPages: 0
+        });
       }
       
-      const tracks = await storage.getCrateTracks(crateId);
-      res.json({ tracks, total: tracks.length });
+      // Parse pagination parameters
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = (page - 1) * limit;
+      
+      const allTracks = await storage.getCrateTracks(crateId);
+      const total = allTracks.length;
+      const totalPages = Math.ceil(total / limit);
+      
+      // Apply pagination
+      const tracks = allTracks.slice(offset, offset + limit);
+      
+      res.json({ 
+        tracks, 
+        total,
+        page,
+        totalPages 
+      });
     } catch (error) {
       console.error('Get crate tracks error:', error);
       res.status(500).json({ message: "Failed to fetch crate tracks" });
