@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { List, Grid3X3, ChevronLeft, ChevronRight, ChevronUp, ChevronDown } from "lucide-react";
+import { List, Grid3X3, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -231,6 +231,19 @@ export function TrackTable({
           return !!(queryKey && queryKey.startsWith('/api/crates/') && queryKey.endsWith('/tracks'));
         }
       });
+    },
+  });
+  
+  // Remove track from crate mutation
+  const removeFromCrateMutation = useMutation({
+    mutationFn: async ({ crateId, trackId }: { crateId: string; trackId: string }) => {
+      return apiRequest('DELETE', `/api/crates/${crateId}/tracks/${trackId}`);
+    },
+    onSuccess: () => {
+      // Invalidate the current crate's tracks
+      queryClient.invalidateQueries({ queryKey: [`/api/crates/${selectedCrate}/tracks`] });
+      // Also invalidate the crates list to update track counts  
+      queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
     },
   });
 
@@ -560,7 +573,7 @@ export function TrackTable({
               {tracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`border-b border-border cursor-pointer flex ${
+                  className={`border-b border-border cursor-pointer flex group ${
                     selectedTrack === track.id ? 'bg-accent' : 'hover:bg-accent/50'
                   }`}
                   onClick={() => onSelectTrack(track.id)}
@@ -609,6 +622,25 @@ export function TrackTable({
                       </div>
                     );
                   })}
+                  
+                  {/* Remove from crate button - only show when viewing a specific crate */}
+                  {selectedCrate && selectedCrate !== 'main' && (
+                    <div className="flex items-center justify-center px-2 py-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 hover:bg-destructive/10 hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeFromCrateMutation.mutate({ crateId: selectedCrate, trackId: track.id });
+                        }}
+                        title="Remove from crate"
+                        data-testid={`button-remove-${track.id}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
