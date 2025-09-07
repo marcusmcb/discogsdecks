@@ -250,6 +250,9 @@ export class DiscogsService {
     await storage.deleteUserTracks(userId);
     await storage.deleteUserReleases(userId);
 
+    // Ensure user has a "Main" location and get its ID
+    const mainLocation = await storage.getMainLocation(userId);
+
     while (hasMore) {
       const { releases, hasMore: morePages, total } = await this.getUserCollection(token, username, page);
       
@@ -281,6 +284,7 @@ export class DiscogsService {
                 await storage.createTrack({
                   releaseId: releaseRecord.id,
                   userId,
+                  locationId: mainLocation.id, // Assign to Main location by default
                   position: track.position,
                   title: track.title,
                   artist: track.artists ? track.artists.map(a => a.name).join(', ') : details.artists.map(a => a.name).join(', '),
