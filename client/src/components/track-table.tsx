@@ -372,6 +372,7 @@ export function TrackTable({
     } else if (field === 'location') {
       // For location, we need to use a special API endpoint with locationId
       try {
+        console.log('Saving location:', { trackId, editValue, locationId: editValue === '' || editValue === 'none' ? null : editValue });
         await apiRequest('PATCH', `/api/tracks/${trackId}/location`, {
           locationId: editValue === '' || editValue === 'none' ? null : editValue
         });
@@ -568,10 +569,13 @@ export function TrackTable({
     // For location field, convert location name to ID for the dropdown
     if (field === 'location') {
       const track = tracks.find(t => t.id === trackId);
+      console.log('Starting edit for location:', { trackId, track: track?.location, currentValue });
       if (track?.location) {
         const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || '';
+        console.log('Found locationId:', locationId, 'for location name:', track.location.name);
         setEditValue(locationId);
       } else {
+        console.log('No location found, setting empty');
         setEditValue('');
       }
     } else {
@@ -739,6 +743,7 @@ export function TrackTable({
                             <Select 
                               value={editValue || 'none'} 
                               onValueChange={(value) => {
+                                console.log('Location dropdown changed:', { value, willSetEditValue: value === 'none' ? '' : value });
                                 setEditValue(value === 'none' ? '' : value);
                                 // Auto-save location changes
                                 setTimeout(saveEdit, 0);
