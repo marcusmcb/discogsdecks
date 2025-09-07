@@ -597,10 +597,12 @@ export function TrackTable({
       const allTracks = data.tracks || [];
       
       console.log(`Frontend: Found ${allTracks.length} total tracks in crate for bulk update`);
+      console.log('Frontend: First few tracks:', allTracks.slice(0, 3));
       
       if (allTracks.length === 0) return;
       
       const trackIds = allTracks.map((track: Track) => track.id);
+      console.log(`Frontend: Generated ${trackIds.length} track IDs:`, trackIds.slice(0, 10));
       const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
       
       bulkLocationUpdateMutation.mutate({ trackIds, locationId });
