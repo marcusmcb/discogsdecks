@@ -162,7 +162,7 @@ export function TrackTable({
     {
       id: 'duration',
       label: 'Duration',
-      size: 6.60, // Normalized from 7 (7/106*100)
+      size: 6.61, // Adjusted to make total exactly 100%
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.duration || '—',
