@@ -350,11 +350,7 @@ export function TrackTable({
     },
   });
 
-  // Handle cell editing
-  const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
-    setEditingCell({ trackId, field });
-    setEditValue(currentValue || '');
-  }, []);
+
 
   const cancelEditing = useCallback(() => {
     setEditingCell(null);
@@ -377,7 +373,7 @@ export function TrackTable({
       // For location, we need to use a special API endpoint with locationId
       try {
         await apiRequest('PATCH', `/api/tracks/${trackId}/location`, {
-          locationId: editValue === '' ? null : editValue
+          locationId: editValue === '' || editValue === 'none' ? null : editValue
         });
         
         // Invalidate specific queries to refetch the data with updated location
@@ -565,6 +561,24 @@ export function TrackTable({
   const total = tracksData?.total || 0;
   const totalPages = tracksData?.totalPages || 1;
 
+  // Handle cell editing
+  const startEditing = useCallback((trackId: string, field: string, currentValue: string) => {
+    setEditingCell({ trackId, field });
+    
+    // For location field, convert location name to ID for the dropdown
+    if (field === 'location') {
+      const track = tracks.find(t => t.id === trackId);
+      if (track?.location) {
+        const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || '';
+        setEditValue(locationId);
+      } else {
+        setEditValue('');
+      }
+    } else {
+      setEditValue(currentValue || '');
+    }
+  }, [tracks, locationsData]);
+
   return (
     <div className="h-full flex flex-col" data-testid="track-table-container">
       {/* Toolbar */}
@@ -723,14 +737,7 @@ export function TrackTable({
                         {isEditing ? (
                           column.id === 'location' ? (
                             <Select 
-                              value={(() => {
-                                // For location editing, convert location name to ID
-                                if (!editValue && track.location) {
-                                  const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || 'none';
-                                  return locationId;
-                                }
-                                return editValue || 'none';
-                              })()} 
+                              value={editValue || 'none'} 
                               onValueChange={(value) => {
                                 setEditValue(value === 'none' ? '' : value);
                                 // Auto-save location changes
