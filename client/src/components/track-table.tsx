@@ -14,6 +14,10 @@ interface Track {
   position?: string;
   duration?: string;
   bpm?: number | null;
+  location?: {
+    name: string;
+    color: string | null;
+  } | null;
   release: {
     title: string;
     year?: number;
@@ -95,7 +99,7 @@ export function TrackTable({
     {
       id: 'position',
       label: '#',
-      size: 3.77, // Normalized from 4 (4/106*100)
+      size: 3.5,
       minSize: 3,
       maxSize: 6,
       getValue: (_, index, currentPage) => String(index + 1 + (currentPage - 1) * pageSize).padStart(3, '0'),
@@ -105,7 +109,7 @@ export function TrackTable({
     {
       id: 'artist',
       label: 'Artist',
-      size: 17.92, // Normalized from 19 (19/106*100)
+      size: 16.5,
       minSize: 10,
       getValue: (track) => track.artist,
       className: 'font-medium truncate',
@@ -114,7 +118,7 @@ export function TrackTable({
     {
       id: 'title',
       label: 'Track Title',
-      size: 22.64, // Normalized from 24 (24/106*100)
+      size: 21.0,
       minSize: 15,
       getValue: (track) => track.title,
       className: 'truncate',
@@ -123,7 +127,7 @@ export function TrackTable({
     {
       id: 'release',
       label: 'Release',
-      size: 17.92, // Normalized from 19 (19/106*100)
+      size: 16.5,
       minSize: 10,
       getValue: (track) => track.release.title,
       className: 'text-muted-foreground truncate',
@@ -132,7 +136,7 @@ export function TrackTable({
     {
       id: 'year',
       label: 'Year',
-      size: 7.55, // Normalized from 8 (8/106*100)
+      size: 7.0,
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.release.year?.toString() || '—',
@@ -142,7 +146,7 @@ export function TrackTable({
     {
       id: 'genre',
       label: 'Genre',
-      size: 10.38, // Normalized from 11 (11/106*100)
+      size: 9.5,
       minSize: 8,
       maxSize: 16,
       getValue: (track) => track.release.genre || '—',
@@ -152,7 +156,7 @@ export function TrackTable({
     {
       id: 'format',
       label: 'Format',
-      size: 7.55, // Normalized from 8 (8/106*100)
+      size: 7.0,
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.release.format || '—',
@@ -162,7 +166,7 @@ export function TrackTable({
     {
       id: 'duration',
       label: 'Duration',
-      size: 6.61, // Adjusted to make total exactly 100%
+      size: 6.0,
       minSize: 6,
       maxSize: 12,
       getValue: (track) => track.duration || '—',
@@ -170,9 +174,19 @@ export function TrackTable({
       padding: 'px-3 py-3'
     },
     {
+      id: 'location',
+      label: 'Location',
+      size: 8.0,
+      minSize: 6,
+      maxSize: 15,
+      getValue: (track) => track.location?.name || 'No Location',
+      className: 'truncate',
+      padding: 'px-4 py-3'
+    },
+    {
       id: 'bpm',
       label: 'BPM',
-      size: 5.66, // Normalized from 6 (6/106*100)
+      size: 5.0,
       minSize: 5,
       maxSize: 10,
       getValue: (track) => track.bpm?.toString() || '',
@@ -359,6 +373,23 @@ export function TrackTable({
       if (isNaN(processedValue)) {
         processedValue = null;
       }
+    } else if (field === 'location') {
+      // For location, we need to use a special API endpoint with locationId
+      try {
+        await apiRequest('PATCH', `/api/tracks/${trackId}/location`, {
+          locationId: editValue === '' ? null : editValue
+        });
+        
+        // Invalidate queries to refetch the data with updated location
+        queryClient.invalidateQueries({ queryKey: ['/api/tracks'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/crates'] });
+        
+        cancelEditing();
+        return;
+      } catch (error) {
+        console.error('Failed to update track location:', error);
+        return;
+      }
     }
     
     try {
@@ -371,7 +402,7 @@ export function TrackTable({
       console.error('Failed to update track:', error);
       // Could add toast notification here
     }
-  }, [editingCell, editValue, updateTrackMutation, cancelEditing]);
+  }, [editingCell, editValue, updateTrackMutation, cancelEditing, queryClient]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
@@ -521,6 +552,11 @@ export function TrackTable({
     },
   });
 
+  // Fetch available locations for dropdown editing
+  const { data: locationsData } = useQuery<{ locations: Array<{ id: string; name: string; color: string | null }> }>({
+    queryKey: ['/api/locations'],
+  });
+
   const tracks: Track[] = tracksData?.tracks || [];
   const total = tracksData?.total || 0;
   const totalPages = tracksData?.totalPages || 1;
@@ -664,7 +700,7 @@ export function TrackTable({
                     const value = column.getValue(track, index, currentPage);
                     const testId = `text-${column.id}-${track.id}`;
                     const isEditing = editingCell?.trackId === track.id && editingCell?.field === column.id;
-                    const isEditable = ['artist', 'title', 'position', 'duration', 'bpm', 'year', 'genre', 'format', 'release'].includes(column.id);
+                    const isEditable = ['artist', 'title', 'position', 'duration', 'bpm', 'year', 'genre', 'format', 'release', 'location'].includes(column.id);
                     
                     return (
                       <div 
@@ -681,17 +717,52 @@ export function TrackTable({
                         }}
                       >
                         {isEditing ? (
-                          <Input
-                            value={editValue}
-                            onChange={(e) => setEditValue(e.target.value)}
-                            onBlur={saveEdit}
-                            onKeyDown={handleKeyDown}
-                            className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
-                            autoFocus
-                            type={column.id === 'bpm' || column.id === 'year' ? 'number' : 'text'}
-                          />
+                          column.id === 'location' ? (
+                            <Select 
+                              value={(() => {
+                                // For location editing, convert location name to ID
+                                if (!editValue && track.location) {
+                                  const locationId = locationsData?.locations.find(loc => loc.name === track.location?.name)?.id || 'none';
+                                  return locationId;
+                                }
+                                return editValue || 'none';
+                              })()} 
+                              onValueChange={(value) => {
+                                setEditValue(value === 'none' ? '' : value);
+                                // Auto-save location changes
+                                setTimeout(saveEdit, 0);
+                              }}
+                            >
+                              <SelectTrigger className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1 w-full">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">No Location</SelectItem>
+                                {(locationsData?.locations || []).map((location) => (
+                                  <SelectItem key={location.id} value={location.id}>
+                                    <span style={{ color: location.color || 'inherit' }}>
+                                      {location.name}
+                                    </span>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <Input
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              onBlur={saveEdit}
+                              onKeyDown={handleKeyDown}
+                              className="h-6 text-xs border-0 shadow-none focus:ring-1 focus:ring-primary p-1"
+                              autoFocus
+                              type={column.id === 'bpm' || column.id === 'year' ? 'number' : 'text'}
+                            />
+                          )
                         ) : (
-                          <span className={isEditable ? 'hover:bg-accent/20 rounded px-1 -mx-1' : ''}>
+                          <span 
+                            className={isEditable ? 'hover:bg-accent/20 rounded px-1 -mx-1' : ''}
+                            style={column.id === 'location' && track.location?.color ? { color: track.location.color } : {}}
+                          >
                             {value}
                           </span>
                         )}
