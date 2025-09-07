@@ -690,12 +690,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk update tracks location
   app.patch("/api/tracks/bulk-location", async (req, res) => {
     try {
+      console.log('Backend: Received bulk location update request');
       const users = await storage.getAllUsers();
       const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
       
       if (!user) {
+        console.log('Backend: No authenticated user found');
         return res.status(401).json({ message: "User not authenticated" });
       }
+      
+      console.log('Backend: Found user:', user.id);
       
       const bulkUpdateSchema = z.object({
         trackIds: z.array(z.string()),
@@ -703,8 +707,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const { trackIds, locationId } = bulkUpdateSchema.parse(req.body);
+      console.log('Backend: Parsed request data:', { trackCount: trackIds.length, locationId });
       
       await storage.bulkUpdateTracksLocation(trackIds, locationId, user.id);
+      console.log('Backend: Bulk update completed');
       res.json({ success: true, updated: trackIds.length });
     } catch (error) {
       console.error('Bulk update tracks location error:', error);
