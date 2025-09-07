@@ -664,6 +664,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Bulk update tracks location (MUST come before parameterized route)
   app.patch("/api/tracks/bulk-location", async (req, res) => {
+    console.log('🔥 BULK ROUTE HIT! This should appear in logs');
     try {
       console.log('ROUTE: Bulk location update request received');
       console.log('ROUTE: Request body:', req.body);
