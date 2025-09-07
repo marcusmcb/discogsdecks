@@ -472,18 +472,6 @@ export function TrackTable({
                 <Grid3X3 className="h-4 w-4" />
               </Button>
             </div>
-            
-            {/* Sort Options */}
-            <Select value={filters.sortBy} onValueChange={(value) => onFiltersChange({ ...filters, sortBy: value })}>
-              <SelectTrigger className="w-48" data-testid="select-sort">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="artist">Sort by Artist</SelectItem>
-                <SelectItem value="title">Sort by Title</SelectItem>
-                <SelectItem value="year">Sort by Year</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>
