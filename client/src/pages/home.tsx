@@ -3,12 +3,14 @@ import { Sidebar } from "@/components/sidebar";
 import { TrackTable } from "@/components/track-table";
 import { AuthModal } from "@/components/auth-modal";
 import { ImportModal } from "@/components/import-modal";
+import { ImportConfirmationModal } from "@/components/import-confirmation-modal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showImportConfirmationModal, setShowImportConfirmationModal] = useState(false);
   const [selectedTrack, setSelectedTrack] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCrate, setSelectedCrate] = useState<string | null>('main');
@@ -37,8 +39,13 @@ export default function Home() {
     if (!stats?.connected) {
       setShowAuthModal(true);
     } else {
-      setShowImportModal(true);
+      setShowImportConfirmationModal(true);
     }
+  };
+
+  const handleConfirmImport = () => {
+    setShowImportConfirmationModal(false);
+    setShowImportModal(true);
   };
   
   // Mutation for adding tracks to crates
@@ -96,6 +103,15 @@ export default function Home() {
           isOpen={showAuthModal}
           onClose={() => setShowAuthModal(false)}
           data-testid="auth-modal"
+        />
+      )}
+
+      {showImportConfirmationModal && (
+        <ImportConfirmationModal 
+          isOpen={showImportConfirmationModal} 
+          onClose={() => setShowImportConfirmationModal(false)}
+          onConfirm={handleConfirmImport}
+          isUpdate={stats?.totalTracks && stats.totalTracks > 0}
         />
       )}
 

@@ -163,7 +163,7 @@ export function Sidebar({
             data-testid="button-import"
           >
             <Download className="mr-2 h-4 w-4" />
-            Import Collection
+            {stats?.totalTracks && stats.totalTracks > 0 ? "Update Collection" : "Import Collection"}
           </Button>
         </div>
       </div>
