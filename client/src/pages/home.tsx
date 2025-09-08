@@ -111,7 +111,7 @@ export default function Home() {
           isOpen={showImportConfirmationModal} 
           onClose={() => setShowImportConfirmationModal(false)}
           onConfirm={handleConfirmImport}
-          isUpdate={stats?.totalTracks && stats.totalTracks > 0}
+          isUpdate={Boolean(stats?.totalTracks && stats.totalTracks > 0)}
         />
       )}
 
