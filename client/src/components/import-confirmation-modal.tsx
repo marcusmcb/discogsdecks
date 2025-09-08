@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertTriangle, Clock, Database } from "lucide-react";
 
 interface ImportConfirmationModalProps {
@@ -21,6 +21,9 @@ export function ImportConfirmationModal({ isOpen, onClose, onConfirm, isUpdate =
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             {actionTitle}
           </DialogTitle>
+          <DialogDescription>
+            This process will take some time due to API rate limiting. Please confirm to proceed.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
