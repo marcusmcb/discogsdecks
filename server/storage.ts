@@ -549,20 +549,13 @@ export class DatabaseStorage implements IStorage {
   async bulkUpdateTracksLocation(trackIds: string[], locationId: string | null, userId: string): Promise<void> {
     // Update multiple tracks at once using IN clause, but only for tracks owned by the user
     if (trackIds.length > 0) {
-      console.log(`STORAGE: Bulk updating ${trackIds.length} tracks for user ${userId} with locationId: ${locationId}`);
-      console.log('STORAGE: Track IDs:', trackIds.slice(0, 5)); // Log first 5 track IDs for debugging
-      
       // First, let's check which tracks exist and belong to this user
       const existingTracks = await db
         .select({ id: tracks.id, userId: tracks.userId, currentLocationId: tracks.locationId })
         .from(tracks)
         .where(and(inArray(tracks.id, trackIds), eq(tracks.userId, userId)));
       
-      console.log(`STORAGE: Found ${existingTracks.length} tracks belonging to user ${userId}`);
-      console.log('STORAGE: First few existing tracks:', existingTracks.slice(0, 3));
-      
       if (existingTracks.length === 0) {
-        console.log('STORAGE: No tracks found for this user, bulk update skipped');
         return;
       }
       
@@ -572,12 +565,6 @@ export class DatabaseStorage implements IStorage {
         .where(and(inArray(tracks.id, trackIds), eq(tracks.userId, userId)))
         .returning({ id: tracks.id, locationId: tracks.locationId });
       
-      console.log(`STORAGE: Successfully updated ${result.length} tracks`);
-      if (result.length > 0) {
-        console.log('STORAGE: Sample updated track:', result[0]);
-      } else {
-        console.log('STORAGE: ERROR - No tracks were updated despite existing tracks found');
-      }
     }
   }
 }

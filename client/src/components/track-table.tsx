@@ -354,17 +354,9 @@ export function TrackTable({
   // Bulk location update mutation
   const bulkLocationUpdateMutation = useMutation({
     mutationFn: async ({ trackIds, locationId }: { trackIds: string[]; locationId: string | null }) => {
-      console.log('Frontend: Sending bulk location update request', { 
-        trackIdsCount: trackIds.length, 
-        firstFiveTrackIds: trackIds.slice(0, 5), 
-        locationId 
-      });
-      const response = await apiRequest('PATCH', '/api/tracks/bulk-location', { trackIds, locationId });
-      console.log('Frontend: Bulk location update response', response);
-      return response;
+      return apiRequest('PATCH', '/api/tracks/bulk-location', { trackIds, locationId });
     },
     onSuccess: () => {
-      console.log('Frontend: Bulk location update successful, invalidating queries');
       
       // More aggressive cache invalidation
       queryClient.invalidateQueries({ 
@@ -381,7 +373,6 @@ export function TrackTable({
       
       // Force a refetch after a short delay to ensure database changes propagate
       setTimeout(() => {
-        console.log('Frontend: Force refreshing queries after delay');
         queryClient.refetchQueries({
           predicate: (query) => {
             const key = query.queryKey[0] as string;
@@ -610,27 +601,20 @@ export function TrackTable({
   const handleBulkLocationAssignment = useCallback(async () => {
     if (!bulkLocationId || !selectedCrate || selectedCrate === 'main') return;
     
-    console.log('Frontend: Fetching all tracks in crate for bulk update');
-    
     try {
       // Fetch ALL tracks in the crate (without pagination) for bulk update
       const response = await fetch(`/api/crates/${selectedCrate}/tracks?limit=10000`);
       const data = await response.json();
       const allTracks = data.tracks || [];
       
-      console.log(`Frontend: Found ${allTracks.length} total tracks in crate for bulk update`);
-      console.log('Frontend: First few tracks:', allTracks.slice(0, 3));
-      
       if (allTracks.length === 0) return;
       
       const trackIds = allTracks.map((track: Track) => track.id);
-      console.log(`Frontend: Generated ${trackIds.length} track IDs:`, trackIds.slice(0, 10));
       const locationId = bulkLocationId === 'none' ? null : bulkLocationId;
       
-      console.log('Frontend: About to call mutation with:', { trackIdsLength: trackIds.length, locationId });
       bulkLocationUpdateMutation.mutate({ trackIds, locationId });
     } catch (error) {
-      console.error('Frontend: Error fetching all crate tracks for bulk update:', error);
+      console.error('Error fetching crate tracks for bulk update:', error);
     }
   }, [bulkLocationId, selectedCrate, bulkLocationUpdateMutation]);
 
