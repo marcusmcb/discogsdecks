@@ -110,7 +110,7 @@ export function TrackTable({
     {
       id: 'artist',
       label: 'Artist',
-      size: 16.5,
+      size: 15.5,
       minSize: 10,
       getValue: (track) => track.artist,
       className: 'font-medium truncate',
@@ -119,7 +119,7 @@ export function TrackTable({
     {
       id: 'title',
       label: 'Track Title',
-      size: 21.0,
+      size: 19.5,
       minSize: 15,
       getValue: (track) => track.title,
       className: 'truncate',
@@ -128,7 +128,7 @@ export function TrackTable({
     {
       id: 'release',
       label: 'Release',
-      size: 16.5,
+      size: 15.5,
       minSize: 10,
       getValue: (track) => track.release.title,
       className: 'text-muted-foreground truncate',
@@ -177,7 +177,7 @@ export function TrackTable({
     {
       id: 'location',
       label: 'Location',
-      size: 8.0,
+      size: 7.0,
       minSize: 6,
       maxSize: 15,
       getValue: (track) => track.location?.name || 'No Location',
@@ -790,6 +790,26 @@ export function TrackTable({
                   
                   return elements;
                 })}
+                
+                {/* Add header column for remove button in crate views */}
+                {selectedCrate && selectedCrate !== 'main' && (
+                  <>
+                    <PanelResizeHandle 
+                      key="handle-actions"
+                      className="w-1 bg-border hover:bg-primary/50 transition-colors" 
+                    />
+                    <Panel 
+                      key="panel-actions"
+                      defaultSize={4} 
+                      minSize={3} 
+                      maxSize={6}
+                    >
+                      <div className="px-2 py-3 text-left text-sm font-medium text-muted-foreground select-none">
+                        <span className="sr-only">Actions</span>
+                      </div>
+                    </Panel>
+                  </>
+                )}
               </PanelGroup>
             </div>
             
@@ -879,7 +899,7 @@ export function TrackTable({
                   
                   {/* Remove from crate button - only show when viewing a specific crate */}
                   {selectedCrate && selectedCrate !== 'main' && (
-                    <div className="flex items-center justify-center px-2 py-1">
+                    <div className="flex items-center justify-center px-2 py-1" style={{ width: '4%' }}>
                       <Button
                         size="sm"
                         variant="ghost"
