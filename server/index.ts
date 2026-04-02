@@ -65,6 +65,7 @@ app.use((req, res, next) => {
   // doesn't interfere with the other routes
   if (app.get("env") === "development") {
     await setupVite(app, server);
+    log("vite middleware enabled (UI served from the same port)", "vite");
   } else {
     serveStatic(app);
   }
