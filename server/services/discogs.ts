@@ -38,8 +38,14 @@ export class DiscogsService {
   private consumerSecret: string;
 
   constructor() {
-    this.consumerKey = process.env.DISCOGS_CONSUMER_KEY || 'AeTnVJvayCnoxkGQZaQU';
-    this.consumerSecret = process.env.DISCOGS_CONSUMER_SECRET || 'lxdpoRAHQojEViwTMPbiqkRphNWOMxDN';
+    this.consumerKey = process.env.DISCOGS_CONSUMER_KEY || "";
+    this.consumerSecret = process.env.DISCOGS_CONSUMER_SECRET || "";
+
+    if (!this.consumerKey || !this.consumerSecret) {
+      throw new Error(
+        "Missing Discogs app credentials. Set DISCOGS_CONSUMER_KEY and DISCOGS_CONSUMER_SECRET in your environment (e.g., in a local .env file).",
+      );
+    }
   }
 
   async generateOAuthUrl(callbackUrl: string): Promise<{ url: string; requestToken: string; requestSecret: string }> {
