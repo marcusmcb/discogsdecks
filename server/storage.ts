@@ -1,4 +1,4 @@
-import { users, releases, tracks, crates, crateTracks, locations, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack, type Location, type InsertLocation } from "@shared/schema";
+import { users, releases, tracks, crates, crateTracks, locations, discogsCatalogReleases, type User, type InsertUser, type Release, type InsertRelease, type Track, type InsertTrack, type Crate, type InsertCrate, type CrateTrack, type InsertCrateTrack, type Location, type InsertLocation, type DiscogsCatalogRelease, type InsertDiscogsCatalogRelease } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, ilike, or, desc, asc, sql, count, isNotNull, gte, lte, inArray } from "drizzle-orm";
 
@@ -23,7 +23,11 @@ export interface IStorage {
   
   getUserReleases(userId: string): Promise<Release[]>;
   createRelease(release: InsertRelease): Promise<Release>;
-  getReleaseByDiscogsId(discogsId: number): Promise<Release | undefined>;
+  getReleaseByDiscogsId(userId: string, discogsId: number): Promise<Release | undefined>;
+
+  // Cross-user Discogs catalog cache
+  getDiscogsCatalogRelease(discogsId: number): Promise<DiscogsCatalogRelease | undefined>;
+  upsertDiscogsCatalogRelease(release: InsertDiscogsCatalogRelease): Promise<DiscogsCatalogRelease>;
   
   getUserTracks(userId: string, filters?: {
     search?: string;
@@ -114,9 +118,46 @@ export class DatabaseStorage implements IStorage {
     return newRelease;
   }
 
-  async getReleaseByDiscogsId(discogsId: number): Promise<Release | undefined> {
-    const [release] = await db.select().from(releases).where(eq(releases.discogsId, discogsId));
+  async getReleaseByDiscogsId(userId: string, discogsId: number): Promise<Release | undefined> {
+    const [release] = await db
+      .select()
+      .from(releases)
+      .where(and(eq(releases.userId, userId), eq(releases.discogsId, discogsId)));
     return release || undefined;
+  }
+
+  async getDiscogsCatalogRelease(discogsId: number): Promise<DiscogsCatalogRelease | undefined> {
+    const [row] = await db
+      .select()
+      .from(discogsCatalogReleases)
+      .where(eq(discogsCatalogReleases.discogsId, discogsId));
+    return row || undefined;
+  }
+
+  async upsertDiscogsCatalogRelease(
+    release: InsertDiscogsCatalogRelease,
+  ): Promise<DiscogsCatalogRelease> {
+    const [row] = await db
+      .insert(discogsCatalogReleases)
+      .values({
+        ...release,
+        updatedAt: new Date(),
+      } as any)
+      .onConflictDoUpdate({
+        target: discogsCatalogReleases.discogsId,
+        set: {
+          title: release.title,
+          artists: release.artists,
+          year: release.year,
+          genres: release.genres,
+          formats: release.formats,
+          labels: release.labels,
+          tracklist: release.tracklist,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return row;
   }
 
   async getUserTracks(userId: string, filters?: {

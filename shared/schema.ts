@@ -1,5 +1,5 @@
 import { sql, relations } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -17,7 +17,7 @@ export const users = pgTable("users", {
 export const releases = pgTable("releases", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   userId: varchar("user_id").notNull(),
-  discogsId: integer("discogs_id").notNull().unique(),
+  discogsId: integer("discogs_id").notNull(),
   title: text("title").notNull(),
   artist: text("artist").notNull(),
   year: integer("year"),
@@ -26,6 +26,26 @@ export const releases = pgTable("releases", {
   label: text("label"),
   catno: text("catno"),
   createdAt: timestamp("created_at").defaultNow(),
+}, (t) => ({
+  userDiscogsUnique: uniqueIndex("releases_user_discogs_unique").on(t.userId, t.discogsId),
+  userIdIdx: index("releases_user_id_idx").on(t.userId),
+  discogsIdIdx: index("releases_discogs_id_idx").on(t.discogsId),
+}));
+
+// Cross-user catalog cache to avoid per-release Discogs API calls.
+// This is NOT user-owned data; it's a shared cache keyed by Discogs release id.
+export const discogsCatalogReleases = pgTable("discogs_catalog_releases", {
+  discogsId: integer("discogs_id").primaryKey(),
+  title: text("title").notNull(),
+  artists: text("artists").notNull(),
+  year: integer("year"),
+  genres: jsonb("genres").$type<string[]>().default([]),
+  formats: jsonb("formats").$type<string[]>().default([]),
+  labels: jsonb("labels").$type<Array<{ name: string; catno?: string }>>().default([]),
+  tracklist: jsonb("tracklist").$type<
+    Array<{ position: string; title: string; duration?: string; artists?: string[] }>
+  >().default([]),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const tracks = pgTable("tracks", {
@@ -131,6 +151,10 @@ export const insertReleaseSchema = createInsertSchema(releases).omit({
   createdAt: true,
 });
 
+export const insertDiscogsCatalogReleaseSchema = createInsertSchema(discogsCatalogReleases).omit({
+  updatedAt: true,
+});
+
 export const insertTrackSchema = createInsertSchema(tracks).omit({
   id: true,
   createdAt: true,
@@ -155,6 +179,8 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertRelease = z.infer<typeof insertReleaseSchema>;
 export type Release = typeof releases.$inferSelect;
+export type InsertDiscogsCatalogRelease = typeof discogsCatalogReleases.$inferInsert;
+export type DiscogsCatalogRelease = typeof discogsCatalogReleases.$inferSelect;
 export type InsertTrack = z.infer<typeof insertTrackSchema>;
 export type Track = typeof tracks.$inferSelect;
 export type InsertCrate = z.infer<typeof insertCrateSchema>;

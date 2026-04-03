@@ -10,10 +10,26 @@ declare module "express-session" {
   interface SessionData {
     requestToken?: string;
     requestSecret?: string;
+    userId?: string;
   }
 }
 
 const discogsService = new DiscogsService();
+
+async function getSessionUser(req: Request) {
+  const userId = req.session?.userId;
+  if (!userId) return undefined;
+  return await storage.getUser(userId);
+}
+
+async function requireSessionUser(req: Request, res: any) {
+  const user = await getSessionUser(req);
+  if (!user) {
+    res.status(401).json({ message: "User not authenticated" });
+    return undefined;
+  }
+  return user;
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Discogs OAuth routes
@@ -92,6 +108,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Store tokens (in production, encrypt these)
       await storage.updateUserTokens(user.id, tokens.token, tokens.secret, identity.username);
+
+      // Mark this browser session as authenticated as this user
+      req.session.userId = user.id;
       
       // Send success message to parent window and close popup
       res.send(`
@@ -142,20 +161,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Invalid credentials. Please check your username and token." });
       }
 
-      // Token is valid, store it
-      const userId = "demo-user-id";
-      
-      // Ensure demo user exists
-      let user = await storage.getUser(userId);
+      // Token is valid, store it on a per-session user.
+      // If user doesn't exist yet, create a local user record.
+      let user = await storage.getUserByUsername(username);
       if (!user) {
         user = await storage.createUser({
-          username: "demo-user",
-          password: "temp-password"
+          username,
+          password: "token-user" // Not used for token auth flow
         });
       }
       
       // Store credentials
       await storage.updateUserTokens(user.id, token, "", username);
+
+      // Mark this browser session as authenticated as this user
+      req.session.userId = user.id;
       
       res.json({ message: "Successfully connected to Discogs" });
     } catch (error) {
@@ -167,10 +187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import collection
   app.post("/api/import", async (req, res) => {
     try {
-      // For demo purposes, find the most recently authenticated user
-      // In production, you'd use proper session management
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       if (!user || !user.discogsToken || !user.discogsUsername) {
         return res.status(401).json({ message: "No authenticated Discogs user found. Please connect your account first." });
@@ -194,9 +212,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get tracks with filtering and pagination
   app.get("/api/tracks", async (req, res) => {
     try {
-      // Find the authenticated user (with Discogs tokens)
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await getSessionUser(req);
       
       if (!user) {
         // No authenticated user, return empty result
@@ -246,13 +262,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bulk update tracks location (MUST come before any parameterized track routes)
   app.patch("/api/tracks/bulk-location", async (req, res) => {
     try {
-      
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const bulkUpdateSchema = z.object({
         trackIds: z.array(z.string()),
@@ -278,13 +289,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const trackId = req.params.id;
       
-      // Find the authenticated user
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       // Validate update data - separate track fields from release fields
       const updateSchema = z.object({
@@ -349,8 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user's crates
   app.get("/api/crates", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await getSessionUser(req);
       
       if (!user) {
         return res.json({ crates: [] });
@@ -367,12 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new crate
   app.post("/api/crates", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const createSchema = z.object({
         name: z.string().min(1, "Crate name is required"),
@@ -396,12 +397,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/crates/:id", async (req, res) => {
     try {
       const crateId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const updateSchema = z.object({
         name: z.string().min(1, "Crate name is required"),
@@ -421,12 +418,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/crates/:id", async (req, res) => {
     try {
       const crateId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       await storage.deleteCrate(crateId);
       res.json({ success: true });
@@ -440,12 +433,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/crates/:id/tracks", async (req, res) => {
     try {
       const crateId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const addTrackSchema = z.object({
         trackId: z.string(),
@@ -465,12 +454,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/crates/:id/tracks/:trackId", async (req, res) => {
     try {
       const { id: crateId, trackId } = req.params;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       await storage.removeTrackFromCrate(crateId, trackId);
       res.json({ success: true });
@@ -484,8 +469,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/crates/:id/tracks", async (req, res) => {
     try {
       const crateId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await getSessionUser(req);
       
       if (!user) {
         return res.json({ 
@@ -538,8 +522,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get unique genres from user's collection
   app.get("/api/genres", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await getSessionUser(req);
       
       if (!user) {
         return res.json({ genres: [] });
@@ -558,8 +541,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get user locations
   app.get("/api/locations", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      const user = await getSessionUser(req);
       
       if (!user) {
         return res.json({ locations: [] });
@@ -576,12 +558,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new location
   app.post("/api/locations", async (req, res) => {
     try {
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const createLocationSchema = z.object({
         name: z.string().min(1, "Location name is required"),
@@ -621,12 +599,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/locations/:id", async (req, res) => {
     try {
       const locationId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const updateLocationSchema = z.object({
         name: z.string().min(1).optional(),
@@ -664,12 +638,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/locations/:id", async (req, res) => {
     try {
       const locationId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       // Get the location to check if it's the "Main" location
       const locations = await storage.getUserLocations(user.id);
@@ -697,12 +667,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/tracks/:id/location", async (req, res) => {
     try {
       const trackId = req.params.id;
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not authenticated" });
-      }
+      const user = await requireSessionUser(req, res);
+      if (!user) return;
       
       const updateTrackLocationSchema = z.object({
         locationId: z.string().nullable(),
@@ -721,9 +687,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get library stats
   app.get("/api/stats", async (req, res) => {
     try {
-      // Find the authenticated user (with Discogs tokens)
-      const users = await storage.getAllUsers();
-      const user = users.find((u: any) => u.discogsToken && u.discogsUsername);
+      // Session-authenticated user
+      const user = await getSessionUser(req);
       
       if (!user) {
         // No authenticated user found

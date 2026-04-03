@@ -251,6 +251,8 @@ export class DiscogsService {
     let page = 1;
     let hasMore = true;
     let totalProcessed = 0;
+    let catalogHits = 0;
+    let catalogMisses = 0;
 
     // Clear existing data
     await storage.deleteUserTracks(userId);
@@ -265,27 +267,53 @@ export class DiscogsService {
       for (const release of releases) {
         try {
           // Check if release already exists
-          const existingRelease = await storage.getReleaseByDiscogsId(release.id);
+          const existingRelease = await storage.getReleaseByDiscogsId(userId, release.id);
           
           if (!existingRelease) {
-            // Get detailed release information
-            const details = await this.getReleaseDetails(release.id, token);
+            // Prefer shared catalog cache to avoid per-release Discogs API calls.
+            let details = await storage.getDiscogsCatalogRelease(release.id);
+
+            if (details) {
+              catalogHits++;
+            } else {
+              catalogMisses++;
+              const apiDetails = await this.getReleaseDetails(release.id, token);
+              // Normalize to our cache shape.
+              details = await storage.upsertDiscogsCatalogRelease({
+                discogsId: apiDetails.id,
+                title: apiDetails.title,
+                artists: apiDetails.artists.map((a) => a.name).join(", "),
+                year: apiDetails.year || null,
+                genres: apiDetails.genres || [],
+                formats: (apiDetails.formats || []).map((f) => f.name),
+                labels: (apiDetails.labels || []).map((l) => ({
+                  name: l.name,
+                  catno: l.catno,
+                })),
+                tracklist: (apiDetails.tracklist || []).map((t) => ({
+                  position: t.position,
+                  title: t.title,
+                  duration: t.duration,
+                  artists: t.artists ? t.artists.map((a) => a.name) : undefined,
+                })),
+              });
+            }
             
             // Create release record
             const releaseRecord = await storage.createRelease({
               userId,
               discogsId: release.id,
               title: details.title,
-              artist: details.artists.map(a => a.name).join(', '),
+              artist: details.artists,
               year: details.year || null,
-              genre: details.genres ? details.genres[0] : null,
-              format: details.formats ? details.formats[0].name : null,
-              label: details.labels ? details.labels[0].name : null,
-              catno: details.labels ? details.labels[0].catno : null,
+              genre: details.genres && details.genres.length > 0 ? details.genres[0] : null,
+              format: details.formats && details.formats.length > 0 ? details.formats[0] : null,
+              label: details.labels && details.labels.length > 0 ? details.labels[0].name : null,
+              catno: details.labels && details.labels.length > 0 ? details.labels[0].catno : null,
             });
 
             // Create track records
-            if (details.tracklist) {
+            if (details.tracklist && details.tracklist.length > 0) {
               for (const track of details.tracklist) {
                 await storage.createTrack({
                   releaseId: releaseRecord.id,
@@ -293,7 +321,7 @@ export class DiscogsService {
                   locationId: mainLocation.id, // Assign to Main location by default
                   position: track.position,
                   title: track.title,
-                  artist: track.artists ? track.artists.map(a => a.name).join(', ') : details.artists.map(a => a.name).join(', '),
+                  artist: track.artists && track.artists.length > 0 ? track.artists.join(", ") : details.artists,
                   duration: track.duration || null,
                 });
               }
@@ -312,6 +340,6 @@ export class DiscogsService {
       page++;
     }
 
-    return { totalProcessed };
+    return { totalProcessed, catalogHits, catalogMisses };
   }
 }
