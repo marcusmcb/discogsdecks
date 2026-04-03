@@ -12,7 +12,7 @@ interface DiscogsRelease {
     artists: Array<{ name: string }>;
     year?: number;
     genres?: string[];
-    formats?: Array<{ name: string }>;
+    formats?: Array<{ name: string; descriptions?: string[] }>;
     labels?: Array<{ name: string; catno?: string }>;
   };
 }
@@ -266,6 +266,15 @@ export class DiscogsService {
       
       for (const release of releases) {
         try {
+          // Vinyl-only: skip non-vinyl releases based on collection metadata.
+          const formats = release.basic_information?.formats || [];
+          const isVinyl = formats.some(
+            (f) => typeof f?.name === "string" && f.name.toLowerCase() === "vinyl",
+          );
+          if (!isVinyl) {
+            continue;
+          }
+
           // Check if release already exists
           const existingRelease = await storage.getReleaseByDiscogsId(userId, release.id);
           

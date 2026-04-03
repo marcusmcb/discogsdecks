@@ -7,14 +7,17 @@ vite.config.ts.*
 
 # Local secrets
 .env
-.env.*
 !.env.example
+/.env
 
 # Tooling / editor / OS
 .local/
 *.log
 coverage/
 Thumbs.db
+
+# Temp files created by scripts
+.tmp/
 
 /env
 /.env
